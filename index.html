@@ -50,7 +50,7 @@
       <p>Choose a project to start</p>
     </div>
   </div>
-  <div class="badge">Prepared by Maruf Hasan</div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><button id="admBtn" onclick="adminToggle()" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;font-weight:700;">&#128274; Admin Login</button><div class="badge">Prepared by Maruf Hasan</div></div>
 </header>
 
 <main>
@@ -69,6 +69,7 @@
     </a>
   </div>
 
+  <div id="adminArea" hidden>
   <div class="card">
     <h3>&#9729; Online pharmacy list (Google Sheet)</h3>
     <div class="note">The pharmacy list is kept in your Google Sheet, so every computer sees the same list. Pharmacies you add in Project 1 or Project 2 are saved there automatically.</div>
@@ -84,6 +85,12 @@
       <button class="b1" onclick="syncNow()">&#128260; Sync now / Test connection</button>
     </div>
     <div class="note" style="margin-top:8px;">The secret key is the word you wrote in the Google script (SECRET). It is needed only to <b>save</b> changes. Viewing the list needs no key.</div>
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e3e8f2;">
+      <b style="color:#1F3864;">Keep ALL data in one place (Google Sheet)</b>
+      <div class="note" style="margin:6px 0 10px;">Do this <b>one time only</b>. It copies the built-in list into your Google Sheet. After that, the Google Sheet is the only place of the pharmacy data. Rows already in the sheet are not changed.</div>
+      <button class="b1" onclick="uploadBase()">&#128228; Upload built-in list to Google Sheet</button>
+      <div id="upmsg" class="note" style="margin-top:8px;"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -95,6 +102,7 @@
     </div>
     <div id="msg" class="note" style="margin-top:10px;"></div>
     <div id="list" hidden></div>
+  </div>
   </div>
 </main>
 
@@ -120,6 +128,29 @@ function refresh() {
   $('list').hidden = false;
   $('list').innerHTML = '<table><tr><th>Pharmacy</th><th>Region</th><th>Driver</th><th>Status</th></tr>' +
     rows.map(r => '<tr><td>' + esc(r[0]) + '</td><td>' + (r[1].removed ? '<i>removed</i>' : esc(r[1].region)) + '</td><td>' + esc(r[1].driver || '') + '</td><td>' + (r[2] === 'online' ? '\u2601 online' : '\u23F3 waiting') + '</td></tr>').join('') + '</table>';
+}
+
+const ADMIN_PASSWORD = 'admin123';
+function adminShow(on) {
+  $('adminArea').hidden = !on;
+  $('admBtn').innerHTML = on ? '&#128275; Admin (click to log out)' : '&#128274; Admin Login';
+  try { sessionStorage.setItem('idxAdmin', on ? '1' : ''); } catch (e) {}
+}
+function adminToggle() {
+  if (!$('adminArea').hidden) { adminShow(false); return; }
+  const p = prompt('Enter admin password');
+  if (p === null) return;
+  if (p === ADMIN_PASSWORD) adminShow(true); else alert('Wrong password');
+}
+
+function uploadBase() {
+  if (!confirm('Copy the built-in list (' + Shared.baseCount() + ' pharmacies) into the Google Sheet? Existing sheet rows will not be changed.')) return;
+  $('upmsg').textContent = 'Uploading...';
+  Shared.uploadBase().then(j => {
+    $('upmsg').style.color = '#2e8b57';
+    $('upmsg').textContent = '\u2714 Done. Added ' + j.added + ' pharmacies to the Google Sheet (' + j.skipped + ' were already there). From now on the Google Sheet is the only place of the data.';
+    refresh();
+  }).catch(e => { $('upmsg').style.color = '#b45309'; $('upmsg').textContent = 'Failed: ' + e.message; });
 }
 
 function saveKey() {
@@ -161,6 +192,7 @@ $('restore').addEventListener('change', e => {
 });
 
 refresh();
+try { if (sessionStorage.getItem('idxAdmin') === '1') adminShow(true); } catch (e) {}
 if (window.Shared) syncNow();
 </script>
 </body>

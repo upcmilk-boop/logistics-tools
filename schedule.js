@@ -627,7 +627,10 @@ window.BASE_SCHEDULE = {
     // final list = BASE + online Google Sheet + changes waiting on this computer
     merged: function () {
       var out = {}, k, layers = [cache().data, load()];
-      for (k in BASE) out[k] = { region: BASE[k].region, driver: BASE[k].driver || '' };
+      var cc = cache();
+      if (!((window.SHEET_ONLY || cc.complete) && Object.keys(cc.data).length > 0)) {
+        for (k in BASE) out[k] = { region: BASE[k].region, driver: BASE[k].driver || '' };
+      }
       layers.forEach(function (L) {
         for (k in L) {
           if (L[k] && L[k].removed) delete out[k];
@@ -698,7 +701,7 @@ window.BASE_SCHEDULE = {
         .then(function (r) { return r.json(); })
         .then(function (j) {
           if (!j || !j.ok) throw new Error('bad reply');
-          jset(CACHE, { data: j.data, time: Date.now() });
+          jset(CACHE, { data: j.data, time: Date.now(), complete: !!j.complete });
           var go = Shared.getKey() && Shared.pendingCount() ? Shared.pushAll() : Promise.resolve(0);
           return go.then(function () {
             if (!Shared.pendingCount()) status('Online list loaded \u2714 ' + new Date().toLocaleTimeString(), true);
@@ -706,6 +709,17 @@ window.BASE_SCHEDULE = {
           });
         })
         .catch(function () { status('Offline: using the last saved copy of the list.', false); return false; });
+    },
+
+    // One-time: copy the built-in list into the Google Sheet (existing sheet rows are NOT overwritten)
+    uploadBase: function () {
+      if (!url()) return Promise.reject(new Error('Online list is not set up (config.js)'));
+      if (!Shared.getKey()) return Promise.reject(new Error('Save the secret key first'));
+      var items = Object.keys(BASE).map(function (k) { return { code: k, region: BASE[k].region, driver: BASE[k].driver || '' }; });
+      return post({ action: 'bulk', items: items, skipExisting: true }).then(function (j) {
+        if (!j || !j.ok) throw new Error(j && j.error === 'Bad pharmacy code' ? 'The Google script is the OLD version. Paste the new Code.gs in Apps Script and deploy a New version first.' : ((j && j.error) || 'Upload failed'));
+        return Shared.sync().then(function () { return j; });
+      });
     },
 
     // Backup = everything online + everything waiting on this computer
