@@ -78,16 +78,9 @@ if (typeof XLSX === 'undefined') {
   </div>
 
   <div class="card">
-    <h3>Add new pharmacy</h3>
-    <small>If a pharmacy is shown under UNASSIGNED, add its region here once. It is saved in this browser and is shared with Project 1.</small>
-    <div class="btns" style="align-items:center;">
-      <input type="text" id="code" placeholder="Pharmacy code, e.g. P700">
-      <input type="text" id="region" list="regions" placeholder="Region, e.g. RIYADH">
-      <input type="text" id="driver" placeholder="Driver (optional, Jeddah)">
-      <datalist id="regions"></datalist>
-      <button class="add" onclick="addPharmacy()">+ Add</button>
-    </div>
-    <div id="addmsg" style="margin-top:10px;font-size:14px;"></div>
+    <h3>New pharmacy?</h3>
+    <small>To add, change or remove a pharmacy, go to <a href="index.html">Home</a> and use <b>Admin Login</b>. The change is shared with Project 1 and every computer.</small>
+    <datalist id="regions"></datalist>
   </div>
 </main>
 <div id="syncStatus" style="text-align:center;font-size:13px;padding:6px 0;color:#667085;"></div>
@@ -292,7 +285,7 @@ function exportExcel() {
   box.className = unassigned.length ? 'warn' : '';
   box.innerHTML = '<b>Done.</b> ' + total + ' rows in ' + keys.length + ' region block(s): ' +
     keys.map(k => k + ' (' + groups.get(k).length + ')').join(', ') + '.' +
-    (unassigned.length ? '<br><b>UNASSIGNED pharmacies (not in the list):</b> ' + unassigned.join(', ') + '. Add them below, then download again.' : '') + cancelNote(cancel, removed);
+    (unassigned.length ? '<br><b>UNASSIGNED pharmacies (not in the list):</b> ' + unassigned.join(', ') + '. Add them on the Home page (Admin Login), then download again.' : '') + cancelNote(cancel, removed);
 }
 </script>
 </body>

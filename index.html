@@ -33,6 +33,13 @@
   .b1 { background: #1F3864; color: #fff; }
   .b2, label.b2 { background: #fff; color: #1F3864; border: 2px solid #1F3864; }
   .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .fld { padding: 10px; border: 1px solid #b8c2d6; border-radius: 8px; font-size: 15px; width: 210px; max-width: 100%; font-family: inherit; }
+  #allList { max-height: 420px; overflow: auto; border: 1px solid #e3e8f2; border-radius: 8px; }
+  #allList table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  #allList td, #allList th { padding: 6px 10px; border-bottom: 1px solid #eef1f6; text-align: left; }
+  #allList th { background: #eef2f9; color: #1F3864; position: sticky; top: 0; }
+  .mini { border: 1px solid #b8c2d6; background: #fff; color: #1F3864; padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer; margin-right: 4px; }
+  .mini.del { color: #c0392b; border-color: #e3b4ae; }
   #list { margin-top: 12px; font-size: 13px; max-height: 180px; overflow: auto; border: 1px solid #e3e8f2; border-radius: 8px; }
   #list table { width: 100%; border-collapse: collapse; }
   #list td, #list th { padding: 6px 10px; border-bottom: 1px solid #eef1f6; text-align: left; }
@@ -58,7 +65,7 @@
     <a class="tile" href="project1.html">
       <div class="ico">&#128230;</div>
       <h2>Project 1 &ndash; Delivery Logistics Suite</h2>
-      <p>LT23 + VL06C &rarr; TO List, Region Wise, Jeddah Driver Wise, TO Count Region Wise, TO Region Wise and Not Matched sheets. Admin panel for pharmacies.</p>
+      <p>LT23 + VL06C &rarr; TO List, Region Wise, Jeddah Driver Wise, TO Count Region Wise, TO Region Wise and Not Matched sheets.</p>
       <span class="go">Open Project 1 &rarr;</span>
     </a>
     <a class="tile" href="project2.html">
@@ -70,6 +77,24 @@
   </div>
 
   <div id="adminArea" hidden>
+  <div class="card">
+    <h3>&#10133; Add / update / remove pharmacy</h3>
+    <div class="note">This is the <b>only place</b> to change pharmacies. A change is saved to the Google Sheet, so Project 1, Project 2 and every computer get it. (Save the secret key below once on each computer.)</div>
+    <div class="row" style="align-items:center;margin-top:12px;">
+      <input type="text" id="aCode" placeholder="Pharmacy code, e.g. P700" class="fld">
+      <input type="text" id="aRegion" list="regionList" placeholder="Region, e.g. RIYADH" class="fld">
+      <input type="text" id="aDriver" placeholder="Driver (optional, Jeddah)" class="fld">
+      <datalist id="regionList"></datalist>
+      <button class="b1" onclick="addPharmacy()">&#10004; Save pharmacy</button>
+    </div>
+    <div id="addRes" style="margin:10px 0 4px;font-size:15px;font-weight:600;"></div>
+    <div style="margin-top:12px;">
+      <input type="text" id="q" class="fld" style="width:100%;" placeholder="&#128269; Search by pharmacy code, region or driver" oninput="renderAll()">
+    </div>
+    <div id="allInfo" class="note" style="margin:8px 0 4px;"></div>
+    <div id="allList"></div>
+  </div>
+
   <div class="card">
     <h3>&#9729; Online pharmacy list (Google Sheet)</h3>
     <div class="note">The pharmacy list is kept in your Google Sheet, so every computer sees the same list. Pharmacies you add in Project 1 or Project 2 are saved there automatically.</div>
@@ -116,6 +141,7 @@ window.onSharedStatus = function (msg, ok) { const el = $('state'); if (el) { el
 
 function refresh() {
   if (!window.Shared) { $('msg').textContent = 'schedule.js was not found. Keep it next to this page.'; return; }
+  renderAll();
   $('nBase').textContent = Shared.baseCount();
   $('nSheet').textContent = Shared.sheetCount();
   $('nPending').textContent = Shared.pendingCount();
@@ -159,6 +185,56 @@ function uploadBase() {
   }).catch(e => { box.style.color = '#b45309'; box.textContent = 'Failed: ' + e.message; });
 }
 
+const phCmp = (a, b) => { const n = x => { const m = String(x).match(/\d+/); return m ? parseInt(m[0], 10) : 1e9; }; return (n(a) - n(b)) || a.localeCompare(b); };
+
+function renderAll() {
+  if (!window.Shared || !$('allList')) return;
+  const m = Shared.merged();
+  const q = ($('q').value || '').trim().toUpperCase();
+  let keys = Object.keys(m).sort(phCmp);
+  if (q) keys = keys.filter(k => k.includes(q) || m[k].region.includes(q) || (m[k].driver || '').includes(q));
+  const shown = keys.slice(0, 150);
+  $('allInfo').textContent = 'Showing ' + shown.length + ' of ' + keys.length + (keys.length > 150 ? ' - use the search box to find a pharmacy' : '');
+  $('allList').innerHTML = '<table><tr><th>Pharmacy</th><th>Region</th><th>Driver</th><th></th></tr>' +
+    shown.map(k => '<tr><td>' + esc(k) + '</td><td>' + esc(m[k].region) + '</td><td>' + esc(m[k].driver || '') + '</td><td><button class="mini" data-act="edit" data-c="' + esc(k) + '">Edit</button><button class="mini del" data-act="del" data-c="' + esc(k) + '">Remove</button></td></tr>').join('') + '</table>';
+  const regs = [...new Set(Object.values(m).map(v => v.region))].sort();
+  $('regionList').innerHTML = regs.map(r => '<option value="' + esc(r) + '">').join('');
+}
+
+function say(text, ok) { const b = $('addRes'); b.style.color = ok === true ? '#2e8b57' : ok === false ? '#b45309' : '#566074'; b.textContent = text; }
+
+function addPharmacy() {
+  const c = $('aCode').value.trim().toUpperCase();
+  const r = $('aRegion').value.trim().toUpperCase();
+  const d = $('aDriver').value.trim().toUpperCase();
+  if (!/^[A-Z]\d{3,4}$/.test(c)) { say('Pharmacy code looks wrong. Example: P700', false); return; }
+  if (!r) { say('Please type the region.', false); return; }
+  const what = c + ' \u2192 ' + r + (d ? ' (driver ' + d + ')' : '');
+  say('\u23F3 Saving ' + what + ' ...');
+  Shared.set(c, r, d || undefined).then(ok => {
+    say(ok ? '\u2714 Saved online: ' + what + '. Now in Project 1, Project 2 and every computer.' : '\u26A0 Saved on this computer only: ' + what + '. ' + Shared.status, ok);
+    refresh();
+  });
+  $('aCode').value = ''; $('aRegion').value = ''; $('aDriver').value = '';
+  renderAll();
+}
+
+$('allList').addEventListener('click', e => {
+  const t = e.target.closest('button[data-act]');
+  if (!t) return;
+  const c = t.getAttribute('data-c');
+  if (t.getAttribute('data-act') === 'edit') {
+    const v = Shared.merged()[c] || {};
+    $('aCode').value = c; $('aRegion').value = v.region || ''; $('aDriver').value = v.driver || '';
+    say('Editing ' + c + '. Change the region or driver, then press Save pharmacy.');
+    window.scrollTo({ top: $('aCode').getBoundingClientRect().top + window.scrollY - 120, behavior: 'smooth' });
+  } else if (confirm('Remove pharmacy ' + c + '?')) {
+    say('\u23F3 Removing ' + c + ' ...');
+    Shared.remove(c).then(ok => { say(ok ? '\u2714 Removed ' + c + ' online.' : '\u26A0 Removed on this computer only. ' + Shared.status, ok); refresh(); });
+    renderAll();
+  }
+});
+
 function saveKey() {
   Shared.setKey($('wkey').value);
   $('wkey').value = '';
@@ -197,7 +273,7 @@ $('restore').addEventListener('change', e => {
   e.target.value = '';
 });
 
-$('ver').innerHTML = 'Page v5 &middot; Data script ' + (window.SHARED_VERSION ? window.SHARED_VERSION + ' \u2714' : '<b style="color:#c0392b">OLD - schedule.js was not updated</b>');
+$('ver').innerHTML = 'Page v6 &middot; Data script ' + (window.SHARED_VERSION ? window.SHARED_VERSION + ' \u2714' : '<b style="color:#c0392b">OLD - schedule.js was not updated</b>');
 refresh();
 try { if (sessionStorage.getItem('idxAdmin') === '1') adminShow(true); } catch (e) {}
 if (window.Shared) syncNow();

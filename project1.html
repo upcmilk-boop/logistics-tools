@@ -150,9 +150,8 @@ tr:hover td { background: #f8fafc; }
     <div><h1>Enterprise Delivery Logistics Suite</h1></div>
   </div>
   <div class="header-actions">
-    <a href="index.html" class="btn btn-outline" style="text-decoration:none;">&#127968; Home</a>
+    <a href="index.html" class="btn btn-outline" style="text-decoration:none;">&#127968; Home / Pharmacy Admin</a>
     <div class="author-badge">Prepared by Maruf Hasan</div>
-    <button class="btn btn-outline" id="adminToggleBtn" onclick="toggleAdminView()">🔒 Admin Login</button>
   </div>
 </header>
 
@@ -197,47 +196,8 @@ tr:hover td { background: #f8fafc; }
     <div class="status-banner" id="statusBanner" hidden></div>
   </div>
 
-  <div class="card" id="adminConsole" hidden>
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h2 style="font-size:18px;margin:0;color:var(--primary-accent);">🔐 Admin Control Center - Master Data</h2>
-      <button class="btn btn-danger" onclick="logoutAdmin()">Logout</button>
-    </div>
-
-    <div class="form-row">
-      <input type="text" id="newShop" placeholder="Pharmacy Code (e.g. P004)">
-      <input type="text" id="newReg" placeholder="City/Region (e.g. Jeddah, Taif)">
-      <input type="text" id="newDrv" placeholder="Assigned Driver (Optional)">
-      <button class="btn btn-primary" onclick="addPharmacy()">+ Add / Update Pharmacy</button>
-    </div>
-
-    <div class="table-container">
-      <table>
-        <thead>
-          <tr>
-            <th>Pharmacy Code</th>
-            <th>Assigned City/Region</th>
-            <th>Driver Name</th>
-            <th style="text-align: right;">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="shopRows"></tbody>
-      </table>
-    </div>
-  </div>
 </main>
 <div id="syncStatus" style="text-align:center;font-size:13px;padding:10px 0 24px;color:#667085;"></div>
-
-<div class="modal-overlay" id="loginModal" hidden>
-  <div class="modal">
-    <h3 style="margin-top:0;font-size:20px;color:var(--primary);">Admin Authentication</h3>
-    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px;">Enter password to manage master pharmacy database.</p>
-    <input type="password" id="adminPass" placeholder="Enter Admin Password" style="width:100%;margin-bottom:16px;">
-    <div style="display:flex;gap:10px;justify-content:center;">
-      <button class="btn btn-primary" style="width:100%;" onclick="verifyAdmin()">Login</button>
-      <button class="btn btn-dark" style="width:100%;" onclick="closeLoginModal()">Cancel</button>
-    </div>
-  </div>
-</div>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -293,10 +253,20 @@ function addPharmacy() {
   let reg = formatText($('newReg').value);
   let drv = formatText($('newDrv').value);
   if (!shop || !reg) { alert('Enter Pharmacy Code and Region.'); return; }
-  Shared.set(shop, reg, drv);
+  const pr = Shared.set(shop, reg, drv);
   reloadSchedule();
   $('newShop').value = ''; $('newReg').value = '';$('newDrv').value = '';
   renderAdminTable();
+  const box = $('addResult');
+  const what = shop + ' \u2192 ' + reg + (drv ? ' (driver ' + drv + ')' : '');
+  box.style.color = '#b45309';
+  box.textContent = '\u23F3 Saving ' + what + ' ...';
+  pr.then(ok => {
+    box.style.color = ok ? '#2e8b57' : '#b45309';
+    box.textContent = ok
+      ? '\u2714 Saved online: ' + what + '. It is now in Project 2 and on every computer.'
+      : '\u2714 Saved on this computer: ' + what + '. ' + Shared.status;
+  });
 }
 
 function removeShop(key) {
