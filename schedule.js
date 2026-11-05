@@ -7,6 +7,7 @@
                    Sheet (see config.js) and are seen by BOTH projects on EVERY
                    computer. If offline, they are kept on this computer and sent later.
    ============================================================ */
+window.SHARED_VERSION = 'v5';
 window.BASE_SCHEDULE = {
   "D069": { "region": "RIYADH", "driver": "" },
   "D075": { "region": "RIYADH", "driver": "" },
@@ -712,13 +713,36 @@ window.BASE_SCHEDULE = {
     },
 
     // One-time: copy the built-in list into the Google Sheet (existing sheet rows are NOT overwritten)
-    uploadBase: function () {
+    uploadBase: function (onProgress) {
       if (!url()) return Promise.reject(new Error('Online list is not set up (config.js)'));
       if (!Shared.getKey()) return Promise.reject(new Error('Save the secret key first'));
       var items = Object.keys(BASE).map(function (k) { return { code: k, region: BASE[k].region, driver: BASE[k].driver || '' }; });
+
+      // Slow but works with the OLD Google script too: one pharmacy at a time (4 in parallel)
+      function slowUpload() {
+        return Shared.sync().then(function () {
+          var have = cache().data;
+          var todo = items.filter(function (it) { return !have[it.code]; });
+          var total = todo.length, done = 0, failed = 0, i = 0, skipped = items.length - total;
+          if (onProgress) onProgress(0, total, true);
+          function worker() {
+            if (i >= todo.length) return Promise.resolve();
+            var it = todo[i++];
+            return post({ action: 'set', code: it.code, region: it.region, driver: it.driver })
+              .then(function (r) { if (r && r.ok) done++; else failed++; }, function () { failed++; })
+              .then(function () { if (onProgress) onProgress(done + failed, total, true); return worker(); });
+          }
+          return Promise.all([worker(), worker(), worker(), worker()]).then(function () {
+            return Shared.sync().then(function () { return { ok: true, added: done, skipped: skipped, failed: failed, slow: true }; });
+          });
+        });
+      }
+
+      // Fast way (new Google script). If the script is old, fall back to the slow way automatically.
       return post({ action: 'bulk', items: items, skipExisting: true }).then(function (j) {
-        if (!j || !j.ok) throw new Error(j && j.error === 'Bad pharmacy code' ? 'The Google script is the OLD version. Paste the new Code.gs in Apps Script and deploy a New version first.' : ((j && j.error) || 'Upload failed'));
-        return Shared.sync().then(function () { return j; });
+        if (j && j.ok) return Shared.sync().then(function () { return j; });
+        if (j && j.error === 'Bad pharmacy code') return slowUpload();
+        throw new Error((j && j.error) || 'Upload failed');
       });
     },
 

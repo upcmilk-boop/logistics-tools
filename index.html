@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Logistics Tools - Maruf Hasan</title>
 <script src="config.js"></script>
-<script src="schedule.js"></script>
+<script src="schedule.js?v=5"></script>
 <style>
   * { box-sizing: border-box; }
   body { margin: 0; font-family: Calibri, Segoe UI, Arial, sans-serif; background: #f3f5f9; color: #1f2937; }
@@ -106,7 +106,7 @@
   </div>
 </main>
 
-<footer>Logistics Tools &middot; Prepared by <b>Maruf Hasan</b></footer>
+<footer>Logistics Tools &middot; Prepared by <b>Maruf Hasan</b><br><span id="ver" style="font-size:12px;"></span></footer>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -145,12 +145,18 @@ function adminToggle() {
 
 function uploadBase() {
   if (!confirm('Copy the built-in list (' + Shared.baseCount() + ' pharmacies) into the Google Sheet? Existing sheet rows will not be changed.')) return;
-  $('upmsg').textContent = 'Uploading...';
-  Shared.uploadBase().then(j => {
-    $('upmsg').style.color = '#2e8b57';
-    $('upmsg').textContent = '\u2714 Done. Added ' + j.added + ' pharmacies to the Google Sheet (' + j.skipped + ' were already there). From now on the Google Sheet is the only place of the data.';
+  const box = $('upmsg');
+  box.style.color = '#566074';
+  box.textContent = 'Uploading...';
+  Shared.uploadBase((d, t, slow) => {
+    box.textContent = 'Uploading one by one - please keep this page open: ' + d + ' / ' + t;
+  }).then(j => {
+    box.style.color = j.failed ? '#b45309' : '#2e8b57';
+    box.textContent = j.failed
+      ? '\u26A0 Added ' + j.added + ', but ' + j.failed + ' failed. Press the button again to send the rest.'
+      : '\u2714 Done. Added ' + j.added + ' pharmacies to the Google Sheet (' + j.skipped + ' were already there). Open the sheet to see them.';
     refresh();
-  }).catch(e => { $('upmsg').style.color = '#b45309'; $('upmsg').textContent = 'Failed: ' + e.message; });
+  }).catch(e => { box.style.color = '#b45309'; box.textContent = 'Failed: ' + e.message; });
 }
 
 function saveKey() {
@@ -191,6 +197,7 @@ $('restore').addEventListener('change', e => {
   e.target.value = '';
 });
 
+$('ver').innerHTML = 'Page v5 &middot; Data script ' + (window.SHARED_VERSION ? window.SHARED_VERSION + ' \u2714' : '<b style="color:#c0392b">OLD - schedule.js was not updated</b>');
 refresh();
 try { if (sessionStorage.getItem('idxAdmin') === '1') adminShow(true); } catch (e) {}
 if (window.Shared) syncNow();
