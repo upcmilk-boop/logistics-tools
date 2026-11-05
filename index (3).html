@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logistics Tools - Maruf Hasan</title>
+<script src="config.js"></script>
+<script src="schedule.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Calibri, Segoe UI, Arial, sans-serif; background: #f3f5f9; color: #1f2937; }
+  header { background: linear-gradient(135deg, #14233f 0%, #1F3864 100%); color: #fff; padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo { width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 23px; }
+  header h1 { margin: 0; font-size: 22px; }
+  header p { margin: 3px 0 0; font-size: 13px; opacity: .85; }
+  .badge { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.28); color: #bcd7ff; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; white-space: nowrap; }
+  main { max-width: 900px; margin: 28px auto; padding: 0 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+  .tile { display: block; text-decoration: none; color: inherit; background: #fff; border-radius: 14px; padding: 24px; box-shadow: 0 1px 8px rgba(0,0,0,.09); border: 2px solid transparent; transition: transform .15s, border-color .15s, box-shadow .15s; }
+  .tile:hover { transform: translateY(-3px); border-color: #3b82f6; box-shadow: 0 6px 18px rgba(31,56,100,.18); }
+  .tile .ico { font-size: 34px; }
+  .tile h2 { margin: 10px 0 6px; font-size: 20px; color: #1F3864; }
+  .tile p { margin: 0 0 14px; font-size: 14px; color: #566074; line-height: 1.5; }
+  .tile .go { display: inline-block; background: #1F3864; color: #fff; padding: 9px 18px; border-radius: 8px; font-weight: 700; font-size: 14px; }
+  .card { background: #fff; border-radius: 14px; padding: 22px; margin-top: 22px; box-shadow: 0 1px 8px rgba(0,0,0,.09); }
+  .card h3 { margin: 0 0 8px; color: #1F3864; }
+  .card small, .card .note { color: #667085; font-size: 13px; line-height: 1.5; }
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0; }
+  .stat { background: #eef2f9; border-radius: 10px; padding: 10px 16px; font-size: 14px; }
+  .stat b { color: #1F3864; font-size: 18px; }
+  button, label.btn { border: 0; border-radius: 8px; padding: 10px 16px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .b1 { background: #1F3864; color: #fff; }
+  .b2, label.b2 { background: #fff; color: #1F3864; border: 2px solid #1F3864; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  #list { margin-top: 12px; font-size: 13px; max-height: 180px; overflow: auto; border: 1px solid #e3e8f2; border-radius: 8px; }
+  #list table { width: 100%; border-collapse: collapse; }
+  #list td, #list th { padding: 6px 10px; border-bottom: 1px solid #eef1f6; text-align: left; }
+  #list th { background: #eef2f9; color: #1F3864; position: sticky; top: 0; }
+  footer { text-align: center; color: #667085; font-size: 13px; padding: 24px 0 30px; }
+  footer b { color: #1F3864; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">M</div>
+    <div>
+      <h1>Logistics Tools</h1>
+      <p>Choose a project to start</p>
+    </div>
+  </div>
+  <div class="badge">Prepared by Maruf Hasan</div>
+</header>
+
+<main>
+  <div class="grid">
+    <a class="tile" href="project1.html">
+      <div class="ico">&#128230;</div>
+      <h2>Project 1 &ndash; Delivery Logistics Suite</h2>
+      <p>LT23 + VL06C &rarr; TO List, Region Wise, Jeddah Driver Wise, TO Count Region Wise, TO Region Wise and Not Matched sheets. Admin panel for pharmacies.</p>
+      <span class="go">Open Project 1 &rarr;</span>
+    </a>
+    <a class="tile" href="project2.html">
+      <div class="ico">&#128666;</div>
+      <h2>Project 2 &ndash; TO Region Wise</h2>
+      <p>VL06C only &rarr; one Excel sheet with region-wise blocks: Ship-to Party, Delivery, TO for picking. Cancelled pharmacies option included.</p>
+      <span class="go">Open Project 2 &rarr;</span>
+    </a>
+  </div>
+
+  <div class="card">
+    <h3>&#9729; Online pharmacy list (Google Sheet)</h3>
+    <div class="note">The pharmacy list is kept in your Google Sheet, so every computer sees the same list. Pharmacies you add in Project 1 or Project 2 are saved there automatically.</div>
+    <div class="stats">
+      <div class="stat">Built-in list: <b id="nBase">0</b></div>
+      <div class="stat">Online (Google Sheet): <b id="nSheet">0</b></div>
+      <div class="stat">Waiting on this computer: <b id="nPending">0</b></div>
+    </div>
+    <div id="state" class="note" style="margin-bottom:10px;"></div>
+    <div class="row" style="align-items:center;">
+      <input type="password" id="wkey" placeholder="Secret key (once per computer)" style="padding:10px;border:1px solid #b8c2d6;border-radius:8px;font-size:14px;width:260px;max-width:100%;">
+      <button class="b2" onclick="saveKey()">Save key</button>
+      <button class="b1" onclick="syncNow()">&#128260; Sync now / Test connection</button>
+    </div>
+    <div class="note" style="margin-top:8px;">The secret key is the word you wrote in the Google script (SECRET). It is needed only to <b>save</b> changes. Viewing the list needs no key.</div>
+  </div>
+
+  <div class="card">
+    <h3>&#128190; Backup</h3>
+    <div class="note">Download a backup file now and then. It contains everything added online and on this computer, and can be restored on any computer.</div>
+    <div class="row">
+      <button class="b1" onclick="downloadBackup()">&#128229; Download backup</button>
+      <label class="b2 btn">&#128228; Restore backup<input type="file" id="restore" accept=".json" style="display:none"></label>
+    </div>
+    <div id="msg" class="note" style="margin-top:10px;"></div>
+    <div id="list" hidden></div>
+  </div>
+</main>
+
+<footer>Logistics Tools &middot; Prepared by <b>Maruf Hasan</b></footer>
+
+<script>
+const $ = id => document.getElementById(id);
+const esc = t => String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+window.onSharedStatus = function (msg, ok) { const el = $('state'); if (el) { el.textContent = '\u2601 ' + msg; el.style.color = ok ? '#2e8b57' : '#b45309'; } refresh(); };
+
+function refresh() {
+  if (!window.Shared) { $('msg').textContent = 'schedule.js was not found. Keep it next to this page.'; return; }
+  $('nBase').textContent = Shared.baseCount();
+  $('nSheet').textContent = Shared.sheetCount();
+  $('nPending').textContent = Shared.pendingCount();
+  const rows = [];
+  const sd = Shared.sheetData(), pc = Shared.custom();
+  Object.keys(sd).forEach(k => { if (!pc[k]) rows.push([k, sd[k], 'online']); });
+  Object.keys(pc).forEach(k => rows.push([k, pc[k], 'waiting']));
+  rows.sort((a, b) => a[0].localeCompare(b[0]));
+  if (!rows.length) { $('list').hidden = true; return; }
+  $('list').hidden = false;
+  $('list').innerHTML = '<table><tr><th>Pharmacy</th><th>Region</th><th>Driver</th><th>Status</th></tr>' +
+    rows.map(r => '<tr><td>' + esc(r[0]) + '</td><td>' + (r[1].removed ? '<i>removed</i>' : esc(r[1].region)) + '</td><td>' + esc(r[1].driver || '') + '</td><td>' + (r[2] === 'online' ? '\u2601 online' : '\u23F3 waiting') + '</td></tr>').join('') + '</table>';
+}
+
+function saveKey() {
+  Shared.setKey($('wkey').value);
+  $('wkey').value = '';
+  $('state').textContent = 'Key saved on this computer.';
+  syncNow();
+}
+
+function syncNow() {
+  $('state').textContent = 'Connecting...';
+  Shared.sync().then(refresh);
+}
+
+function downloadBackup() {
+  const blob = new Blob([Shared.exportJSON()], { type: 'application/json' });
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = 'pharmacy_backup_' + d.getDate() + '-' + (d.getMonth() + 1) + '-' + d.getFullYear() + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  $('msg').textContent = 'Backup downloaded. Keep the file in a safe place (or send it to be added permanently).';
+}
+
+$('restore').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      const n = Shared.importObj(JSON.parse(fr.result));
+      $('msg').textContent = '\u2714 Restored ' + n + ' pharmacy entries. Sending them online...';
+      refresh();
+      Shared.pushAll().then(() => { $('msg').textContent = '\u2714 Restored ' + n + ' entries. Waiting to send: ' + Shared.pendingCount(); refresh(); });
+    } catch (err) { $('msg').textContent = 'Could not restore: ' + err.message; }
+  };
+  fr.readAsText(f);
+  e.target.value = '';
+});
+
+refresh();
+if (window.Shared) syncNow();
+</script>
+</body>
+</html>

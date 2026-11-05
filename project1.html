@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Enterprise Delivery Logistics Suite | Maruf Hasan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script src="schedule.js"></script>
+<script>
+if (typeof XLSX === 'undefined') {
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+  document.head.appendChild(s);
+}
+</script>
+
+<style>
+:root {
+  --primary: #0f172a;
+  --primary-accent: #2563eb;
+  --primary-hover: #1d4ed8;
+  --bg-main: #f8fafc;
+  --card-bg: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --success-bg: #f0fdf4;
+  --success-border: #86efac;
+  --danger: #ef4444;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+* { box-sizing: border-box; transition: all 0.2s ease; }
+body {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.5;
+}
+
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 18px 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow-md);
+}
+header .brand { display: flex; align-items: center; gap: 12px; }
+header .brand-logo {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 20px; color: #fff;
+}
+header h1 { font-size: 18px; font-weight: 700; margin: 0; }
+header .header-actions { display: flex; align-items: center; gap: 12px; }
+header .author-badge {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 13px; font-weight: 600; color: #93c5fd;
+}
+
+main { max-width: 1120px; margin: 32px auto; padding: 0 20px; }
+
+.upload-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px; margin-bottom: 24px;
+}
+.dropzone {
+  border: 2px dashed var(--border-color);
+  background: #fafafa; border-radius: 12px;
+  padding: 24px 16px; text-align: center; cursor: pointer;
+}
+.dropzone:hover { border-color: var(--primary-accent); background: #f0f6ff; }
+.dropzone.success { background: var(--success-bg); border-color: var(--success-border); border-style: solid; }
+.dropzone input { display: none; }
+.dropzone strong { display: block; font-size: 15px; font-weight: 700; color: var(--primary); margin-top: 6px; }
+.dropzone span { font-size: 12px; color: var(--text-muted); }
+.file-name { margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--primary-accent); word-break: break-all; }
+
+.card {
+  background: var(--card-bg); border: 1px solid var(--border-color);
+  border-radius: 16px; padding: 24px; margin-bottom: 24px; box-shadow: var(--shadow-sm);
+}
+
+.btn {
+  font-family: inherit; font-weight: 600; font-size: 14px;
+  padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary { background: var(--primary-accent); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-dark { background: var(--primary); color: #fff; }
+.btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #fff; }
+.btn-outline:hover { background: rgba(255,255,255,0.1); }
+.btn-danger { background: #fee2e2; color: var(--danger); padding: 6px 12px; font-size: 12px; }
+.btn-danger:hover { background: var(--danger); color: #fff; }
+
+.form-row {
+  display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 16px;
+}
+input[type="text"], input[type="password"] {
+  padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border-color);
+  font-family: inherit; font-size: 14px; flex: 1; min-width: 180px; outline: none;
+}
+input:focus { border-color: var(--primary-accent); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15); }
+
+.table-container {
+  max-height: 320px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 10px;
+}
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { background: #f1f5f9; color: var(--primary); font-weight: 700; padding: 12px 16px; text-align: left; position: sticky; top: 0; z-index: 1; }
+td { padding: 10px 16px; border-bottom: 1px solid var(--border-color); color: var(--text-main); }
+tr:hover td { background: #f8fafc; }
+
+.status-banner {
+  background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af;
+  border-radius: 10px; padding: 14px 18px; font-size: 14px; font-weight: 500; margin-top: 16px;
+}
+
+.modal-overlay {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal {
+  background: #fff; border-radius: 16px; width: 100%; max-width: 400px; padding: 28px;
+  box-shadow: var(--shadow-lg); text-align: center;
+}
+
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-logo">M</div>
+    <div><h1>Enterprise Delivery Logistics Suite</h1></div>
+  </div>
+  <div class="header-actions">
+    <a href="index.html" class="btn btn-outline" style="text-decoration:none;">&#127968; Home</a>
+    <div class="author-badge">Prepared by Maruf Hasan</div>
+    <button class="btn btn-outline" id="adminToggleBtn" onclick="toggleAdminView()">🔒 Admin Login</button>
+  </div>
+</header>
+
+<main>
+  <div style="text-align:center;margin-bottom:10px;font-size:14px;">💡 You can select <b>both files together</b> in either box (hold Ctrl and click both). You can also add <b>two or more VL06C files</b> and they will be combined. The tool detects which is LT23 and which is VL06C automatically.</div>
+  <div class="upload-grid">
+    <label class="dropzone" id="dTo">
+      <span style="font-size:26px;">📦</span>
+      <strong>LT23 Export (TO File)</strong>
+      <span>Upload SAP LT23 Export (optional - only for TO List sheet)</span>
+      <input type="file" id="pTo" accept=".xlsx,.xls,.csv,.txt" multiple>
+      <div class="file-name" id="nTo"></div>
+    </label>
+
+    <label class="dropzone" id="dDel">
+      <span style="font-size:26px;">🚚</span>
+      <strong>VL06C Deliveries Export</strong>
+      <span>Upload SAP VL06C Export</span>
+      <input type="file" id="pDel" accept=".xlsx,.xls,.csv,.txt" multiple>
+      <div class="file-name" id="nDel"></div>
+    </label>
+  </div>
+
+  <div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h2 style="font-size:18px;margin:0 0 4px;">SAP Data Consolidation Engine</h2>
+        <p style="color:var(--text-muted);font-size:14px;margin:0;">
+          Runs fully inside your browser. Your files are never uploaded anywhere.
+        </p>
+      </div>
+      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+        <button class="btn btn-primary" onclick="runProcess()">⚡ Consolidate & Process SAP Data</button>
+        <button class="btn" style="background:#fff;color:#c0392b;border:2px solid #c0392b;" onclick="clearFiles()">🗑 Clear Files</button>
+        <button class="btn btn-dark" onclick="downloadExcel()">📥 Export Consolidated Excel</button>
+      </div>
+    </div>
+    <div style="margin-top:16px;">
+      <label for="cancelBox" style="font-weight:600;display:block;margin-bottom:6px;">&#128683; Cancelled pharmacies (optional) <span id="cancelCount" style="font-weight:400;color:#c0392b;"></span></label>
+      <textarea id="cancelBox" rows="3" oninput="updateCancelCount()" placeholder="Paste cancelled pharmacy codes here, e.g. P283 P289 P311 (space, comma or new line). Their data will be removed from the Excel." style="width:100%;padding:10px;border:1px solid #b8c2d6;border-radius:8px;font-size:15px;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="status-banner" id="statusBanner" hidden></div>
+  </div>
+
+  <div class="card" id="adminConsole" hidden>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h2 style="font-size:18px;margin:0;color:var(--primary-accent);">🔐 Admin Control Center - Master Data</h2>
+      <button class="btn btn-danger" onclick="logoutAdmin()">Logout</button>
+    </div>
+
+    <div class="form-row">
+      <input type="text" id="newShop" placeholder="Pharmacy Code (e.g. P004)">
+      <input type="text" id="newReg" placeholder="City/Region (e.g. Jeddah, Taif)">
+      <input type="text" id="newDrv" placeholder="Assigned Driver (Optional)">
+      <button class="btn btn-primary" onclick="addPharmacy()">+ Add / Update Pharmacy</button>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Pharmacy Code</th>
+            <th>Assigned City/Region</th>
+            <th>Driver Name</th>
+            <th style="text-align: right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="shopRows"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+<div id="syncStatus" style="text-align:center;font-size:13px;padding:10px 0 24px;color:#667085;"></div>
+
+<div class="modal-overlay" id="loginModal" hidden>
+  <div class="modal">
+    <h3 style="margin-top:0;font-size:20px;color:var(--primary);">Admin Authentication</h3>
+    <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px;">Enter password to manage master pharmacy database.</p>
+    <input type="password" id="adminPass" placeholder="Enter Admin Password" style="width:100%;margin-bottom:16px;">
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <button class="btn btn-primary" style="width:100%;" onclick="verifyAdmin()">Login</button>
+      <button class="btn btn-dark" style="width:100%;" onclick="closeLoginModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let S = { to: null, del: null };
+let loadedFiles = { to: {}, del: {} };
+let isAdminLoggedIn = false;
+let processedResults = null;
+let vlOnlyMode = false;
+
+if (!window.Shared || !window.BASE_SCHEDULE) {
+  alert('schedule.js was not found. Put schedule.js in the same folder / repository as this page, then reload.');
+}
+const DEFAULT_SCHEDULE = window.BASE_SCHEDULE || {};
+let activeSchedule = new Map(Object.entries(window.Shared ? Shared.merged() : {}));
+function reloadSchedule() { activeSchedule = new Map(Object.entries(Shared.merged())); }
+window.onSharedStatus = function (msg, ok) { const el = document.getElementById('syncStatus'); if (el) { el.textContent = '\u2601 ' + msg; el.style.color = ok ? '#2e8b57' : '#b45309'; } };
+if (window.Shared) Shared.sync().then(function () { reloadSchedule(); if (isAdminLoggedIn) renderAdminTable(); });
+
+function formatText(str) { return String(str || '').trim().toUpperCase(); }
+function titleCaseDriver(str) { return String(str || '').trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()); }
+
+function toggleAdminView() { isAdminLoggedIn ? $('adminConsole').hidden = false :$('loginModal').hidden = false; }
+function closeLoginModal() { $('loginModal').hidden = true; $('adminPass').value = ''; }
+
+function verifyAdmin() {
+  if ($('adminPass').value === 'admin123') {
+    isAdminLoggedIn = true;
+    closeLoginModal();
+    $('adminConsole').hidden = false;
+    $('adminToggleBtn').innerHTML = '🔓 Admin Active';
+    renderAdminTable();
+  } else { alert('Incorrect Admin Password!'); }
+}
+
+function logoutAdmin() {
+  isAdminLoggedIn = false;
+  $('adminConsole').hidden = true;
+  $('adminToggleBtn').innerHTML = '🔒 Admin Login';
+}
+
+function esc(t) { return String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function renderAdminTable() {
+  let html = '';
+  activeSchedule.forEach((val, key) => {
+    html += `<tr><td><strong>${esc(key)}</strong></td><td>${esc(val.region)}</td><td>${esc(val.driver || '-')}</td>
+    <td style="text-align: right;"><button class="btn btn-danger" data-key="${esc(key)}" onclick="removeShop(this.dataset.key)">Delete</button></td></tr>`;
+  });
+  $('shopRows').innerHTML = html;
+}
+
+function addPharmacy() {
+  let shop = formatText($('newShop').value);
+  let reg = formatText($('newReg').value);
+  let drv = formatText($('newDrv').value);
+  if (!shop || !reg) { alert('Enter Pharmacy Code and Region.'); return; }
+  Shared.set(shop, reg, drv);
+  reloadSchedule();
+  $('newShop').value = ''; $('newReg').value = '';$('newDrv').value = '';
+  renderAdminTable();
+}
+
+function removeShop(key) {
+  if (confirm(`Remove ${key}?`)) { Shared.remove(key); reloadSchedule(); renderAdminTable(); }
+}
+
+function readFileDirect(f) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, { type: 'array' });
+        const nk = k => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const known = keys => {
+          const k = keys.map(nk);
+          return (k.includes('delivery') && k.includes('shiptoparty')) || k.includes('transferordernumber') || k.includes('deststoragetype');
+        };
+        // 1) Normal case (unchanged behaviour): sheet "Data" or first sheet, header in row 1
+        const targetSheet = wb.Sheets['Data'] || wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(targetSheet, { defval: '' });
+        if (json.length && known(Object.keys(json[0]))) return resolve(json);
+        // 2) Smart search: any sheet, header within the first 30 rows
+        for (const name of wb.SheetNames) {
+          const ws = wb.Sheets[name];
+          const arr = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+          for (let i = 0; i < Math.min(arr.length, 30); i++) {
+            if (known(arr[i])) return resolve(XLSX.utils.sheet_to_json(ws, { defval: '', range: i }));
+          }
+        }
+        // 3) Nothing found: same result as before
+        resolve(json);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsArrayBuffer(f);
+  });
+}
+
+function clearFiles() {
+  const cb = document.getElementById('cancelBox'); if (cb) cb.value = '';
+  updateCancelCount();
+  S = { to: null, del: null };
+  loadedFiles = { to: {}, del: {} };
+  processedResults = null;
+  ['To', 'Del'].forEach(id => { $('d' + id).classList.remove('success'); $('n' + id).textContent = ''; });
+  $('statusBanner').hidden = true;
+}
+
+function detectKind(rows, fallback) {
+  const keys = Object.keys(rows[0] || {}).map(k => String(k).toLowerCase().replace(/[^a-z0-9]/g, ''));
+  const has = n => keys.includes(n);
+  if (has('toforpicking') || (has('delivery') && has('shiptoparty'))) return 'del';
+  if (has('transferordernumber') || has('deststoragetype') || has('deststoagebin') || has('deststoragebin')) return 'to';
+  return fallback;
+}
+
+async function handleFile(kind, f) {
+  if (!f) return;
+  try {
+    let rows = await readFileDirect(f);
+    if (!rows || rows.length === 0) throw new Error('Empty');
+    kind = detectKind(rows, kind);
+    loadedFiles[kind][f.name] = rows;
+    const names = Object.keys(loadedFiles[kind]);
+    S[kind] = names.flatMap(n => loadedFiles[kind][n]);
+    const id = kind.charAt(0).toUpperCase() + kind.slice(1);
+    $('d' + id).classList.add('success');
+    $('n' + id).textContent = `✔ ${names.length} file(s): ${names.join(', ')} (${S[kind].length} rows total)`;
+  } catch (e) {
+    console.error(e);
+    if (typeof XLSX === 'undefined') {
+      alert('Excel library (xlsx.full.min.js) is not loaded. Put xlsx.full.min.js in the same folder as this HTML file, or check your internet connection, then reload the page.');
+    } else if (e && e.message === 'Empty') {
+      alert('This file has no data rows. Please check the export.');
+    } else {
+      alert('Could not read this file.\nReason: ' + (e && e.message ? e.message : e));
+    }
+  }
+}
+
+function parseCancel() {
+  const box = document.getElementById('cancelBox');
+  const t = ((box && box.value) || '').toUpperCase();
+  return new Set(t.match(/[A-Z]\d{3,4}/g) || []);
+}
+function updateCancelCount() {
+  const n = parseCancel().size;
+  document.getElementById('cancelCount').textContent = n ? '(' + n + ' pharmacies)' : '';
+}
+let cancelInfo = { perCode: {}, notFound: [], toRemoved: 0, size: 0 };
+function applyCancellations() {
+  const flat = k => { const n = Object.keys(loadedFiles[k]); return n.length ? n.flatMap(x => loadedFiles[k][x]) : S[k]; };
+  S.to = flat('to'); S.del = flat('del');
+  const cancel = parseCancel();
+  cancelInfo = { perCode: {}, notFound: [], toRemoved: 0, size: cancel.size };
+  if (!cancel.size || !S.del) return;
+  const sz = v => String(v || '').trim().replace(/^0+/, '');
+  const gone = new Set();
+  S.del = S.del.filter(r => {
+    const sh = formatText(r['Ship-to Party'] || r['Ship to']).toUpperCase();
+    if (!cancel.has(sh)) return true;
+    gone.add(sz(formatText(r['Delivery'])));
+    cancelInfo.perCode[sh] = (cancelInfo.perCode[sh] || 0) + 1;
+    return false;
+  });
+  if (S.to && gone.size) {
+    const before = S.to.length;
+    S.to = S.to.filter(r => !gone.has(sz(formatText(r['Dest.Storage Bin']))));
+    cancelInfo.toRemoved = before - S.to.length;
+  }
+  cancelInfo.notFound = [...cancel].filter(c => !cancelInfo.perCode[c]);
+}
+function cancelNote() {
+  if (!cancelInfo.size) return '';
+  const done = Object.entries(cancelInfo.perCode).map(([c, n]) => c + ' (' + n + ')').join(', ');
+  let h = '<br><b>Cancelled pharmacies removed:</b> ' + (done || 'none found in VL06C');
+  if (cancelInfo.toRemoved) h += ' &middot; ' + cancelInfo.toRemoved + ' LT23 rows removed';
+  if (cancelInfo.notFound.length) h += '<br><b>Not found in VL06C:</b> ' + cancelInfo.notFound.join(', ');
+  return h;
+}
+
+function runProcess() {
+  if (!S.del && !Object.keys(loadedFiles.del).length) {
+    alert('Please upload the VL06C export file first. (LT23 is optional: it is only needed for the TO List sheet.)');
+    return;
+  }
+  applyCancellations();
+
+  // VL06C only: build Region Wise + Jeddah Driver Wise data directly
+  vlOnlyMode = !S.to;
+  if (vlOnlyMode) {
+    const out = [];
+    S.del.forEach(r => {
+      const delivery = formatText(r['Delivery']);
+      const shipTo = formatText(r['Ship-to Party'] || r['Ship to']);
+      if (!delivery) return;
+      const master = activeSchedule.get(shipTo) || {};
+      out.push({
+        toNum: '', sst: '', destBin: '', delivery, shipTo,
+        customerName: formatText(r['Name ship-to party']),
+        locat: formatText(r['Ship-to Party Locat.']),
+        region: master.region || 'UNASSIGNED',
+        driver: master.driver || '',
+        createdBy: formatText(r['Created By']),
+        warehouse: formatText(r['Warehouse Number'] || r['Warehouse No.']),
+        status: master.region ? 'ok' : 'newpharm'
+      });
+    });
+    processedResults = out;
+    const bad = out.filter(r => r.status !== 'ok').length;
+    const banner = $('statusBanner');
+    banner.hidden = false;
+    banner.innerHTML = `<strong>Success!</strong> VL06C only mode: ${out.length} deliveries processed. Not matched (new pharmacy): ${bad}. Only the TO List sheet is skipped (it needs LT23). Click Export Consolidated Excel to download!`;
+  banner.innerHTML += cancelNote();
+    return;
+  }
+
+  let delLook = new Map();
+  let delByDelivery = new Map();
+  const stripZeros = v => String(v || '').trim().replace(/^0+/, '');
+  S.del.forEach(r => {
+    let toNum = formatText(r['TO for picking'] || r['TO']);
+    let shipTo = formatText(r['Ship-to Party'] || r['Ship to']);
+    let delivery = formatText(r['Delivery']);
+    let customerName = formatText(r['Name ship-to party']);
+    let createdBy = formatText(r['Created By']);
+    let locat = formatText(r['Ship-to Party Locat.']);
+    
+    let info = { shipTo, delivery, customerName, createdBy, locat, warehouse: formatText(r['Warehouse Number'] || r['Warehouse No.']) };
+    if (toNum && !delLook.has(toNum)) delLook.set(toNum, info);
+    let delKey = stripZeros(delivery);
+    if (delKey && !delByDelivery.has(delKey)) delByDelivery.set(delKey, info);
+  });
+
+  let consolidated = [];
+  const normKey = k => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const typeKey = Object.keys(S.to[0] || {}).find(k => normKey(k) === 'deststoragetype');
+  let excluded = 0;
+  S.to.forEach(r => {
+    if (typeKey && formatText(r[typeKey]) !== '916') { excluded++; return; }
+    let toNum = formatText(r['Transfer Order Number'] || r['TO Number']);
+    let sst = formatText(r['Source Storage Type']);
+    let destBin = formatText(r['Dest.Storage Bin']);
+    
+    let matchedDel = delByDelivery.get(stripZeros(destBin)) || delLook.get(toNum) || {};
+    let shipTo = matchedDel.shipTo || '';
+    let masterInfo = activeSchedule.get(shipTo) || {};
+
+    consolidated.push({
+      toNum,
+      sst,
+      destBin,
+      delivery: matchedDel.delivery || '',
+      shipTo,
+      customerName: matchedDel.customerName || '',
+      locat: matchedDel.locat || '',
+      region: masterInfo.region || 'UNASSIGNED',
+      driver: masterInfo.driver || '',
+      createdBy: matchedDel.createdBy || '',
+      warehouse: matchedDel.warehouse || '',
+      status: !matchedDel.delivery ? 'nodel' : (!masterInfo.region ? 'newpharm' : 'ok')
+    });
+  });
+
+  processedResults = consolidated;
+  let banner = $('statusBanner');
+  banner.hidden = false;
+  const notMatched = consolidated.filter(r => r.status !== 'ok').length;
+  banner.innerHTML = `<strong>Success!</strong> ${consolidated.length} rows processed` +
+    (typeKey ? ` (${excluded} rows skipped: Dest. Storage Type not 916)` : ` <br><b>Warning:</b> "Dest. Storage Type" column not found, so no 916 filter was applied.`) +
+    `. Not matched: ${notMatched}. Click Export Consolidated Excel to download!`;
+  banner.innerHTML += cancelNote();
+}
+
+// Sort pharmacies small to large (P004 < P015 < P138). Whole rows are sorted, so each row's other data stays with its pharmacy.
+function cmpPh(a, b) {
+  const n = x => { const m = String(x || '').match(/\d+/); return m ? parseInt(m[0], 10) : 1e9; };
+  return (n(a) - n(b)) || String(a || '').localeCompare(String(b || ''));
+}
+const cmpStr = (a, b) => String(a || '').localeCompare(String(b || ''), undefined, { numeric: true });
+
+function buildSheets(allResults) {
+  const dedupe = (rows, keyFn) => {
+    const seen = new Set();
+    return rows.filter(r => { const k = keyFn(r); if (seen.has(k)) return false; seen.add(k); return true; });
+  };
+  const results = allResults.filter(r => r.status === 'ok');
+  const bad = allResults.filter(r => r.status !== 'ok');
+
+  // Sheet 1: TO list
+  const s1 = [['Transfer Order Number', 'Source Storage Type', 'Delivery Number', 'Pharmacy Number', 'City', 'Region']];
+  if (!vlOnlyMode) dedupe(results, r => r.toNum + '|' + r.sst + '|' + r.delivery + '|' + r.shipTo)
+    .sort((x, y) => cmpPh(x.shipTo, y.shipTo) || cmpStr(x.delivery, y.delivery) || cmpStr(x.toNum, y.toNum))
+    .forEach(r => s1.push([r.toNum, r.sst, r.delivery, r.shipTo, titleCaseDriver(r.locat), r.region]));
+
+  const head = ['Delivery Number', 'Pharmacy Number'];
+  function grouped(rows, keyFn, prefix, emptyLabel) {
+    const groups = new Map();
+    dedupe(rows, r => r.delivery + '|' + r.shipTo).forEach(r => {
+      const k = keyFn(r) || emptyLabel;
+      if (!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r);
+    });
+    const noDrv = k => k.endsWith('NO DRIVER ASSIGNED');
+    const keys = [...groups.keys()].sort((a, b) => a === emptyLabel ? 1 : b === emptyLabel ? -1 : (noDrv(a) - noDrv(b)) || a.localeCompare(b));
+    // blocks side by side: [Warehouse No., Delivery, Ship-to Party, (blank column)]
+    const aoa = [];
+    const put = (row, col, val) => { if (!aoa[row]) aoa[row] = []; aoa[row][col] = val; };
+    keys.forEach((k, i) => {
+      const c = i * 4;
+      put(0, c, k);
+      put(1, c, 'Warehouse No.'); put(1, c + 1, 'Delivery'); put(1, c + 2, 'Ship-to Party');
+      groups.get(k)
+        .sort((x, y) => cmpPh(x.shipTo, y.shipTo) || cmpStr(x.delivery, y.delivery))
+        .forEach((r, j) => { put(2 + j, c, r.warehouse); put(2 + j, c + 1, r.delivery); put(2 + j, c + 2, r.shipTo); });
+    });
+    for (let i = 0; i < aoa.length; i++) if (!aoa[i]) aoa[i] = [];
+    return aoa;
+  }
+
+  // Sheet 2: region wise
+  const s2 = results.length ? grouped(results, r => r.region, 'REGION', 'UNASSIGNED') : [['No matched rows']];
+  // Sheet 3: Jeddah only, driver wise
+  const jed = results.filter(r => String(r.region).includes('JEDDAH'));
+  const s3 = jed.length ? grouped(jed, r => r.region + ' | ' + (r.driver || 'NO DRIVER ASSIGNED'), 'DRIVER', '~') : [['No Jeddah rows found']];
+
+  // Sheet 4: not matched
+  const s4 = [['Transfer Order Number', 'Delivery / Dest. Bin', 'Pharmacy Number', 'City (from VL06C)', 'Customer Name', 'Reason']];
+  dedupe(bad, r => r.toNum + '|' + r.destBin + '|' + r.delivery + '|' + r.shipTo + '|' + r.status)
+    .sort((x, y) => cmpPh(x.shipTo, y.shipTo) || cmpStr(x.delivery || x.destBin, y.delivery || y.destBin))
+    .forEach(r => s4.push([
+    r.toNum,
+    r.delivery || r.destBin,
+    r.shipTo,
+    titleCaseDriver(r.locat),
+    r.customerName,
+    r.status === 'nodel' ? 'Delivery not found in VL06C' : 'New pharmacy - not in master list (region/driver unknown)'
+  ]));
+  if (s4.length === 1) s4.push(['All rows matched']);
+  // Sheet 5: TO Region Wise - rows exactly as in VL06C (Ship-to Party, Delivery, TO), grouped by region
+  const s5 = [];
+  const put5 = (row, col, val) => { if (!s5[row]) s5[row] = []; s5[row][col] = val; };
+  const g5 = new Map();
+  const seen5 = new Set();
+  (S.del || []).forEach(r => {
+    const dl = formatText(r['Delivery']);
+    if (!dl) return;
+    const shipTo = formatText(r['Ship-to Party']);
+    const to = formatText(r['TO for picking']);
+    const key = dl + '|' + to + '|' + shipTo;
+    if (seen5.has(key)) return;
+    seen5.add(key);
+    const region = (activeSchedule.get(shipTo) || {}).region || 'UNASSIGNED';
+    if (!g5.has(region)) g5.set(region, []);
+    g5.get(region).push({ shipTo, dl, to });
+  });
+  [...g5.keys()].sort((a, b) => a === 'UNASSIGNED' ? 1 : b === 'UNASSIGNED' ? -1 : a.localeCompare(b)).forEach((k, i) => {
+    const c = i * 4;
+    put5(0, c, k);
+    put5(1, c, 'Ship-to Party'); put5(1, c + 1, 'Delivery'); put5(1, c + 2, 'TO for picking');
+    g5.get(k).sort((x, y) => cmpPh(x.shipTo, y.shipTo) || cmpStr(x.dl, y.dl) || cmpStr(x.to, y.to)).forEach((r, j) => { put5(2 + j, c, r.shipTo); put5(2 + j, c + 1, r.dl); put5(2 + j, c + 2, r.to); });
+  });
+  for (let i = 0; i < s5.length; i++) if (!s5[i]) s5[i] = [];
+  if (!s5.length) s5.push(['No data']);
+  // Sheet 6: TO Count Region Wise (number of TOs per delivery, TOTAL per region)
+  const s6 = [];
+  const put6 = (row, col, val) => { if (!s6[row]) s6[row] = []; s6[row][col] = val; };
+  const cnt = new Map();
+  (S.del || []).forEach(r => {
+    const dl = formatText(r['Delivery']);
+    if (!dl) return;
+    if (!cnt.has(dl)) cnt.set(dl, { shipTo: formatText(r['Ship-to Party']), tos: new Set() });
+    const to = formatText(r['TO for picking']);
+    if (to) cnt.get(dl).tos.add(to);
+  });
+  const g6 = new Map();
+  cnt.forEach((v, dl) => {
+    const region = (activeSchedule.get(v.shipTo) || {}).region || 'UNASSIGNED';
+    if (!g6.has(region)) g6.set(region, []);
+    g6.get(region).push({ shipTo: v.shipTo, delivery: dl, n: v.tos.size });
+  });
+  [...g6.keys()].sort((a, b) => a === 'UNASSIGNED' ? 1 : b === 'UNASSIGNED' ? -1 : a.localeCompare(b)).forEach((k, i) => {
+    const c = i * 4;
+    put6(0, c, k);
+    put6(1, c, 'Ship-to Party'); put6(1, c + 1, 'Delivery'); put6(1, c + 2, 'No. of TOs');
+    let total = 0, row = 2;
+    g6.get(k).sort((x, y) => cmpPh(x.shipTo, y.shipTo) || cmpStr(x.delivery, y.delivery))
+      .forEach(r => { put6(row, c, r.shipTo); put6(row, c + 1, r.delivery); put6(row, c + 2, r.n); total += r.n; row++; });
+    const nd = g6.get(k).length;
+    put6(row, c, 'TOTAL'); put6(row, c + 1, nd + (nd === 1 ? ' delivery' : ' deliveries')); put6(row, c + 2, total);
+  });
+  for (let i = 0; i < s6.length; i++) if (!s6[i]) s6[i] = [];
+  if (!s6.length) s6.push(['No data']);
+  return { s1, s2, s3, s4, s5, s6 };
+}
+
+const THIN = { style: 'thin', color: { rgb: 'BFC7D5' } };
+const BORDER = { top: THIN, bottom: THIN, left: THIN, right: THIN };
+const ST = {
+  title: { font: { name: 'Calibri', sz: 13, bold: true, color: { rgb: 'FFFFFF' } }, fill: { patternType: 'solid', fgColor: { rgb: '1F3864' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: BORDER },
+  head: { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '1F3864' } }, fill: { patternType: 'solid', fgColor: { rgb: 'D9E2F3' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: BORDER },
+  total: { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '1F3864' } }, fill: { patternType: 'solid', fgColor: { rgb: 'EEF2F9' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: BORDER },
+  cell: { font: { name: 'Calibri', sz: 11 }, alignment: { horizontal: 'center', vertical: 'center' }, border: BORDER }
+};
+
+function styleCell(ws, r, c, st) {
+  const a = XLSX.utils.encode_cell({ r, c });
+  if (!ws[a]) ws[a] = { t: 's', v: '' };
+  ws[a].s = st;
+}
+
+// mode 'blocks': side-by-side blocks (title row, header row, data). mode 'plain': normal table with header row.
+function applyStyles(ws, aoa, mode) {
+  if (mode === 'plain') {
+    (aoa[0] || []).forEach((v, c) => styleCell(ws, 0, c, ST.title));
+    for (let r = 1; r < aoa.length; r++) (aoa[r] || []).forEach((v, c) => styleCell(ws, r, c, ST.cell));
+    ws['!rows'] = [{ hpt: 24 }];
+    return;
+  }
+  ws['!merges'] = ws['!merges'] || [];
+  (aoa[0] || []).forEach((v, c) => {
+    ws['!merges'].push({ s: { r: 0, c }, e: { r: 0, c: c + 2 } });
+    for (let k = 0; k < 3; k++) { styleCell(ws, 0, c + k, ST.title); styleCell(ws, 1, c + k, ST.head); }
+    for (let r = 2; r < aoa.length; r++) {
+      for (let k = 0; k < 3; k++) if (aoa[r] && aoa[r][c + k] !== undefined) styleCell(ws, r, c + k, aoa[r][c] === 'TOTAL' ? ST.total : ST.cell);
+    }
+  });
+  ws['!rows'] = [{ hpt: 28 }, { hpt: 22 }];
+}
+
+function downloadExcel() {
+  if (!processedResults || !processedResults.length) {
+    alert('Please process data first by clicking "Consolidate & Process SAP Data".');
+    return;
+  }
+  const { s1, s2, s3, s4, s5, s6 } = buildSheets(processedResults);
+  let wb = XLSX.utils.book_new();
+  [[s1, 'TO List'], [s2, 'Region Wise'], [s3, 'Jeddah Driver Wise'], [s6, 'TO Count Region Wise'], [s5, 'TO Region Wise'], [s4, 'Not Matched']].filter(x => !(vlOnlyMode && x[1] === 'TO List')).forEach(([aoa, name]) => {
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const blockNames = ['Region Wise', 'Jeddah Driver Wise', 'TO Count Region Wise', 'TO Region Wise'];
+    const blocks = blockNames.includes(name) && aoa.length > 1;
+    applyStyles(ws, aoa, blocks ? 'blocks' : 'plain');
+    if (blockNames.includes(name)) {
+      const n = Math.max(...aoa.map(r => r.length), 1);
+      ws['!cols'] = Array.from({ length: n }, (_, i) => ({ wch: [16, 16, 16, 3][i % 4] }));
+    } else {
+      ws['!cols'] = [{ wch: 24 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 26 }, { wch: 48 }];
+    }
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  });
+
+  const d = new Date();
+  const dateStr = `${d.getDate()}-${d.getMonth() + 1}-${d.getFullYear()}`;
+  XLSX.writeFile(wb, `SAP_Logistics_Report_Maruf_${dateStr}.xlsx`);
+}
+
+['To', 'Del'].forEach(k => {
+  $('p' + k).addEventListener('change', async e => {
+    for (const f of e.target.files) await handleFile(k.toLowerCase(), f);
+    e.target.value = '';
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project 2 - TO Region Wise</title>
+<script src="xlsx.full.min.js"></script>
+<script src="config.js"></script>
+<script src="schedule.js"></script>
+<script>
+if (typeof XLSX === 'undefined') {
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';
+  document.head.appendChild(s);
+}
+</script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: Calibri, Segoe UI, Arial, sans-serif; background: #f3f5f9; color: #1f2937; }
+  header { background: linear-gradient(135deg, #14233f 0%, #1F3864 100%); color: #fff; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .logo { width: 44px; height: 44px; border-radius: 11px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+  header h1 { margin: 0; font-size: 21px; }
+  header p { margin: 3px 0 0; font-size: 13px; opacity: .85; }
+  .badge { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.28); color: #bcd7ff; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
+  footer { text-align: center; color: #667085; font-size: 13px; padding: 6px 0 28px; }
+  footer b { color: #1F3864; }
+  main { max-width: 760px; margin: 24px auto; padding: 0 16px; }
+  .card { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 18px; box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+  .drop { display: block; width: 100%; border: 2px dashed #9fb0d0; border-radius: 10px; padding: 30px 20px; text-align: center; cursor: pointer; background: #f8faff; transition: background .15s; }
+  .drop:hover { background: #eef3ff; }
+  .drop .big { font-size: 17px; margin-bottom: 6px; }
+  .drop.ok { border-color: #2e8b57; background: #eef9f2; }
+  .drop input { display: none; }
+  .drop b { color: #1F3864; }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+  button { border: 0; border-radius: 8px; padding: 11px 18px; font-size: 15px; cursor: pointer; font-weight: 600; }
+  .primary { background: #1F3864; color: #fff; }
+  .clear { background: #fff; color: #c0392b; border: 2px solid #c0392b; }
+  .add { background: #2e8b57; color: #fff; }
+  #msg { margin-top: 14px; padding: 12px; border-radius: 8px; background: #eef2f9; font-size: 14px; line-height: 1.5; }
+  #msg.warn { background: #fff4e5; }
+  input[type=text] { padding: 10px; border: 1px solid #b8c2d6; border-radius: 8px; font-size: 15px; width: 220px; max-width: 100%; }
+  h3 { margin: 0 0 10px; color: #1F3864; }
+  small { color: #667085; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">M</div>
+    <div>
+      <h1>Project 2 &ndash; TO Region Wise</h1>
+      <p>Upload VL06C only &rarr; Excel with region-wise blocks: Ship-to Party, Delivery, TO for picking</p>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;"><a href="index.html" class="badge" style="text-decoration:none;">&#127968; Home</a><div class="badge">Prepared by Maruf Hasan</div></div>
+</header>
+<main>
+  <div class="card">
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".xlsx,.xls,.csv,.txt" multiple>
+      <div class="big">&#128193; <b>Click to upload VL06C file(s)</b></div>
+      <small>You can select 2 or more VL06C files together (hold Ctrl). They will be combined.</small>
+      <div id="names" style="margin-top:10px;font-size:14px;"></div>
+    </label>
+    <div class="btns">
+      <button class="primary" onclick="exportExcel()">&#128229; Process &amp; Download Excel</button>
+      <button class="clear" onclick="clearFiles()">&#128465; Clear Files</button>
+    </div>
+    <div id="msg" hidden></div>
+  </div>
+
+  <div class="card">
+    <h3>&#128683; Cancelled pharmacies (optional) <span id="cancelCount" style="font-weight:400;font-size:14px;color:#c0392b;"></span></h3>
+    <small>Paste the cancelled pharmacy codes (space, comma or new line). Their data will be removed from the Excel.</small>
+    <textarea id="cancelBox" rows="3" oninput="updateCancelCount()" placeholder="e.g. P283 P289 P311" style="width:100%;margin-top:10px;padding:10px;border:1px solid #b8c2d6;border-radius:8px;font-size:15px;font-family:inherit;resize:vertical;"></textarea>
+  </div>
+
+  <div class="card">
+    <h3>Add new pharmacy</h3>
+    <small>If a pharmacy is shown under UNASSIGNED, add its region here once. It is saved in this browser and is shared with Project 1.</small>
+    <div class="btns" style="align-items:center;">
+      <input type="text" id="code" placeholder="Pharmacy code, e.g. P700">
+      <input type="text" id="region" list="regions" placeholder="Region, e.g. RIYADH">
+      <input type="text" id="driver" placeholder="Driver (optional, Jeddah)">
+      <datalist id="regions"></datalist>
+      <button class="add" onclick="addPharmacy()">+ Add</button>
+    </div>
+    <div id="addmsg" style="margin-top:10px;font-size:14px;"></div>
+  </div>
+</main>
+<div id="syncStatus" style="text-align:center;font-size:13px;padding:6px 0;color:#667085;"></div>
+<footer>Project 2 &middot; TO Region Wise &middot; Prepared by <b>Maruf Hasan</b></footer>
+
+<script>
+if (!window.Shared || !window.BASE_SCHEDULE) {
+  alert('schedule.js was not found. Put schedule.js in the same folder / repository as this page, then reload.');
+}
+let MASTER = window.Shared ? Shared.merged() : {};
+window.onSharedStatus = function (msg, ok) { const el = document.getElementById('syncStatus'); if (el) { el.textContent = '\u2601 ' + msg; el.style.color = ok ? '#2e8b57' : '#b45309'; } };
+let loaded = {};
+const $ = id => document.getElementById(id);
+const fmt = v => (v === null || v === undefined) ? '' : String(v).trim();
+const norm = k => String(k).toLowerCase().replace(/[^a-z0-9]/g, '');
+const regionOf = c => (MASTER[c] && MASTER[c].region) || '';
+
+function fillRegions() {
+  const all = [...new Set(Object.values(MASTER).map(v => v.region))].sort();
+  $('regions').innerHTML = all.map(r => '<option value="' + r + '">').join('');
+}
+fillRegions();
+if (window.Shared) Shared.sync().then(function () { MASTER = Shared.merged(); fillRegions(); });
+
+function readFile(f) {
+  return new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onerror = () => rej(new Error('Cannot read the file'));
+    fr.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, { type: 'array' });
+        let seen = '';
+        for (const name of wb.SheetNames) {
+          const a = XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, defval: '' });
+          for (let i = 0; i < Math.min(a.length, 30); i++) {
+            const keys = a[i].map(norm);
+            const di = keys.indexOf('delivery');
+            let si = keys.indexOf('shiptoparty');
+            if (si < 0) si = keys.indexOf('shipto');
+            if (!seen && a[i].some(x => x !== '')) seen = 'sheet "' + name + '": ' + a[i].filter(x => x !== '').slice(0, 12).join(' | ');
+            if (di >= 0 && si >= 0) {
+              const ti = keys.findIndex(k => k === 'toforpicking' || (k.startsWith('to') && k.includes('picking')));
+              const rows = [];
+              for (let r = i + 1; r < a.length; r++) {
+                const row = a[r];
+                if (row[di] === '' || row[di] === null || row[di] === undefined) continue;
+                rows.push({ delivery: row[di], shiptoparty: row[si], toforpicking: ti >= 0 ? row[ti] : '', noTO: ti < 0 });
+              }
+              return res(rows);
+            }
+          }
+        }
+        rej(new Error('Columns Delivery and Ship-to Party were not found in any sheet. First row seen -> ' + (seen || 'empty')));
+      } catch (x) { rej(x); }
+    };
+    fr.readAsArrayBuffer(f);
+  });
+}
+
+$('file').addEventListener('change', async e => {
+  for (const f of e.target.files) {
+    try {
+      const rows = await readFile(f);
+      if (!rows.length) throw new Error('The file has no data rows');
+      if (rows[0].noTO) alert(f.name + ': the column TO for picking was not found, so the TO column will be empty.');
+      loaded[f.name] = rows;
+    } catch (err) {
+      console.error(err);
+      alert(typeof XLSX === 'undefined'
+        ? 'Excel library (xlsx.full.min.js) is not loaded. Put it in the same folder as this HTML file and reload.'
+        : f.name + ': ' + err.message);
+    }
+  }
+  e.target.value = '';
+  showNames();
+});
+
+function showNames() {
+  const n = Object.keys(loaded);
+  const total = n.reduce((a, k) => a + loaded[k].length, 0);
+  $('names').textContent = n.length ? '\u2714 ' + n.length + ' file(s): ' + n.join(', ') + ' (' + total + ' rows)' : '';
+  $('drop').classList.toggle('ok', n.length > 0);
+}
+
+function clearFiles() {
+  $('cancelBox').value = '';
+  updateCancelCount();
+  loaded = {};
+  showNames();
+  $('msg').hidden = true;
+}
+
+function addPharmacy() {
+  const c = $('code').value.trim().toUpperCase();
+  const r = $('region').value.trim().toUpperCase();
+  const d = $('driver').value.trim().toUpperCase();
+  if (!c || !r) { $('addmsg').textContent = 'Please type both pharmacy code and region.'; return; }
+  const pr = Shared.set(c, r, d || undefined);
+  MASTER = Shared.merged();
+  $('addmsg').textContent = '\u2714 ' + c + ' added to ' + r + (d ? ' (driver ' + d + ')' : '') + '.';
+  pr.then(ok => { if (ok) $('addmsg').textContent += ' Saved online - available in Project 1 and on every computer.'; else $('addmsg').textContent += ' ' + Shared.status; });
+  $('code').value = ''; $('region').value = ''; $('driver').value = '';
+  fillRegions();
+}
+
+function parseCancel() {
+  return new Set(($('cancelBox').value || '').toUpperCase().match(/[A-Z]\d{3,4}/g) || []);
+}
+function updateCancelCount() {
+  const n = parseCancel().size;
+  $('cancelCount').textContent = n ? '(' + n + ' pharmacies)' : '';
+}
+
+function cmpPh(a, b) {
+  const n = x => { const m = String(x || '').match(/\d+/); return m ? parseInt(m[0], 10) : 1e9; };
+  return (n(a) - n(b)) || String(a || '').localeCompare(String(b || ''));
+}
+const cmpStr = (a, b) => String(a || '').localeCompare(String(b || ''), undefined, { numeric: true });
+
+const THIN = { style: 'thin', color: { rgb: 'BFC7D5' } };
+const BORDER = { top: THIN, bottom: THIN, left: THIN, right: THIN };
+const ST = {
+  title: { font: { name: 'Calibri', sz: 13, bold: true, color: { rgb: 'FFFFFF' } }, fill: { patternType: 'solid', fgColor: { rgb: '1F3864' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: BORDER },
+  head: { font: { name: 'Calibri', sz: 11, bold: true, color: { rgb: '1F3864' } }, fill: { patternType: 'solid', fgColor: { rgb: 'D9E2F3' } }, alignment: { horizontal: 'center', vertical: 'center' }, border: BORDER },
+  cell: { font: { name: 'Calibri', sz: 11 }, alignment: { horizontal: 'center', vertical: 'center' }, border: BORDER }
+};
+function styleCell(ws, r, c, st) {
+  const a = XLSX.utils.encode_cell({ r, c });
+  if (!ws[a]) ws[a] = { t: 's', v: '' };
+  ws[a].s = st;
+}
+
+function buildBlocks() {
+  const groups = new Map();
+  const seen = new Set();
+  const unassigned = new Set();
+  const cancel = parseCancel();
+  const removed = {};
+  Object.values(loaded).forEach(rows => rows.forEach(r => {
+    const dl = fmt(r['delivery']);
+    if (!dl) return;
+    const sh = fmt(r['shiptoparty']);
+    const to = fmt(r['toforpicking']);
+    const key = dl + '|' + to + '|' + sh;
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (cancel.has(sh.toUpperCase())) { removed[sh.toUpperCase()] = (removed[sh.toUpperCase()] || 0) + 1; return; }
+    const region = regionOf(sh) || 'UNASSIGNED';
+    if (region === 'UNASSIGNED') unassigned.add(sh);
+    if (!groups.has(region)) groups.set(region, []);
+    groups.get(region).push({ sh, dl, to });
+  }));
+  const aoa = [];
+  const put = (row, col, val) => { if (!aoa[row]) aoa[row] = []; aoa[row][col] = val; };
+  const keys = [...groups.keys()].sort((a, b) => a === 'UNASSIGNED' ? 1 : b === 'UNASSIGNED' ? -1 : a.localeCompare(b));
+  keys.forEach((k, i) => {
+    const c = i * 4;
+    put(0, c, k);
+    put(1, c, 'Ship-to Party'); put(1, c + 1, 'Delivery'); put(1, c + 2, 'TO for picking');
+    groups.get(k).sort((x, y) => cmpPh(x.sh, y.sh) || cmpStr(x.dl, y.dl) || cmpStr(x.to, y.to))
+      .forEach((r, j) => { put(2 + j, c, r.sh); put(2 + j, c + 1, r.dl); put(2 + j, c + 2, r.to); });
+  });
+  for (let i = 0; i < aoa.length; i++) if (!aoa[i]) aoa[i] = [];
+  return { aoa, groups, keys, unassigned: [...unassigned].sort(cmpPh), cancel, removed };
+}
+
+function cancelNote(cancel, removed) {
+  if (!cancel.size) return '';
+  const done = Object.entries(removed).map(([c, n]) => c + ' (' + n + ')').join(', ');
+  const nf = [...cancel].filter(c => !removed[c]);
+  return '<br><b>Cancelled pharmacies removed:</b> ' + (done || 'none found in the file') +
+    (nf.length ? '<br><b>Not found in the file:</b> ' + nf.join(', ') : '');
+}
+
+function exportExcel() {
+  if (!Object.keys(loaded).length) { alert('Please upload the VL06C file first.'); return; }
+  if (typeof XLSX === 'undefined') { alert('Excel library (xlsx.full.min.js) is not loaded. Put it in the same folder as this HTML file and reload.'); return; }
+  const { aoa, groups, keys, unassigned, cancel, removed } = buildBlocks();
+  if (!aoa.length) { alert('No deliveries left to export' + (cancel.size ? ' (all rows belong to cancelled pharmacies)' : '') + '.'); return; }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = [];
+  keys.forEach((k, i) => {
+    const c = i * 4;
+    ws['!merges'].push({ s: { r: 0, c }, e: { r: 0, c: c + 2 } });
+    for (let t = 0; t < 3; t++) { styleCell(ws, 0, c + t, ST.title); styleCell(ws, 1, c + t, ST.head); }
+    for (let r = 2; r < aoa.length; r++) for (let t = 0; t < 3; t++) if (aoa[r][c + t] !== undefined) styleCell(ws, r, c + t, ST.cell);
+  });
+  const n = Math.max(...aoa.map(r => r.length), 1);
+  ws['!cols'] = Array.from({ length: n }, (_, i) => ({ wch: [16, 16, 16, 3][i % 4] }));
+  ws['!rows'] = [{ hpt: 28 }, { hpt: 22 }];
+
+  const wb = XLSX.utils.book_new();
+  wb.Props = { Title: 'TO Region Wise', Author: 'Maruf Hasan' };
+  XLSX.utils.book_append_sheet(wb, ws, 'TO Region Wise');
+  const d = new Date();
+  XLSX.writeFile(wb, 'TO_Region_Wise_' + d.getDate() + '-' + (d.getMonth() + 1) + '-' + d.getFullYear() + '.xlsx');
+
+  const total = [...groups.values()].reduce((a, l) => a + l.length, 0);
+  const box = $('msg');
+  box.hidden = false;
+  box.className = unassigned.length ? 'warn' : '';
+  box.innerHTML = '<b>Done.</b> ' + total + ' rows in ' + keys.length + ' region block(s): ' +
+    keys.map(k => k + ' (' + groups.get(k).length + ')').join(', ') + '.' +
+    (unassigned.length ? '<br><b>UNASSIGNED pharmacies (not in the list):</b> ' + unassigned.join(', ') + '. Add them below, then download again.' : '') + cancelNote(cancel, removed);
+}
+</script>
+</body>
+</html>
