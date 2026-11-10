@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Project 3 - Material Lookup</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+<script src="xlsx.full.min.js"></script>
+<script>
+if (typeof XLSX === 'undefined') {
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  document.head.appendChild(s);
+}
+</script>
+<style>
+:root{--bg:#f3f5f9;--panel:#fff;--ink:#1c2420;--mute:#66726b;--line:#d5dad4;--accent:#1F3864;--accent-ink:#fff;--warn:#fdf0cf;--warnink:#7a5200;--ok:#e4ecfa;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#141a17;--panel:#1d2521;--ink:#e6ece8;--mute:#93a099;--line:#33403a;--accent:#6f9cf0;--accent-ink:#0b1424;--warn:#3a2f10;--warnink:#f2cf7a;--ok:#1b2a45}}
+:root[data-theme="dark"]{--bg:#141a17;--panel:#1d2521;--ink:#e6ece8;--mute:#93a099;--line:#33403a;--accent:#6f9cf0;--accent-ink:#0b1424;--warn:#3a2f10;--warnink:#f2cf7a;--ok:#1b2a45}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Calibri,"Segoe UI",Arial,sans-serif}
+main{max-width:1200px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:22px;margin:0 0 4px;font-weight:600}
+.sub{color:var(--mute);margin:0 0 18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+.card h2{font-size:15px;margin:0 0 10px;font-weight:600}
+.drop{border:2px dashed var(--line);border-radius:6px;padding:18px;text-align:center;color:var(--mute);cursor:pointer}
+.drop.on,.drop:hover{border-color:var(--accent);color:var(--ink)}
+.drop.done{border-style:solid;border-color:var(--accent);background:var(--ok);color:var(--ink)}
+textarea,select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px}
+textarea{min-height:130px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace}
+label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button{font:inherit;font-weight:500;border-radius:6px;padding:8px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+button.p{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,select:focus-visible,textarea:focus-visible,.drop:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:3px 10px;border-radius:99px;border:1px solid var(--line);font-size:13px;cursor:pointer;user-select:none}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.small{font-size:13px;color:var(--mute)}
+#res{margin-top:14px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.stat{padding:4px 10px;border-radius:6px;background:var(--ok);font-size:13px}
+.stat.w{background:var(--warn);color:var(--warnink)}
+.wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{background:var(--bg);position:sticky;top:0;font-weight:600}
+tr.nf td{background:var(--warn);color:var(--warnink)}
+.msg{margin-top:8px;font-size:13px;color:var(--warnink)}
+.sec{font-size:15px;font-weight:600;margin:18px 0 8px}
+.nfbox{background:var(--warn);border-color:var(--warnink)}
+.nfbox .chip{background:var(--panel);color:var(--warnink);border-color:var(--warnink);cursor:default}
+.top{background:linear-gradient(135deg,#14233f 0%,#1F3864 100%);color:#fff;padding:16px 28px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.brand{display:flex;align-items:center;gap:14px}
+.logo{width:44px;height:44px;border-radius:11px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px}
+.top h1{margin:0;font-size:21px;color:#fff}
+.top p{margin:3px 0 0;font-size:13px;opacity:.85}
+.badge{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);color:#bcd7ff;padding:8px 16px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap;text-decoration:none}
+.tr{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+footer{text-align:center;color:var(--mute);font-size:13px;padding:6px 0 28px}
+footer b{color:var(--accent)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="logo">M</div>
+    <div>
+      <h1>Project 3 &ndash; Material Lookup</h1>
+      <p>Upload your master file, enter material codes, get every matching row</p>
+    </div>
+  </div>
+  <div class="tr"><a href="index.html" class="badge">&#127968; Home</a><div class="badge">Prepared by Maruf Hasan</div></div>
+</header>
+<main>
+<p class="sub">Works like VLOOKUP, but returns all columns of every matching row.</p>
+
+<div class="grid">
+  <section class="card">
+    <h2>1. Master file</h2>
+    <div class="drop" id="drop" tabindex="0" role="button">Click or drop master file here (.xlsx, .xls, .csv)</div>
+    <input type="file" id="mf" accept=".xlsx,.xls,.csv" hidden>
+    <div id="mInfo" class="small" style="margin-top:8px"></div>
+    <label for="keyCol">Search by column</label>
+    <select id="keyCol" disabled></select>
+    <label for="whCol">Warehouse column (for filter)</label>
+    <select id="whCol" disabled></select>
+  </section>
+
+  <section class="card">
+    <h2>2. Material codes to search</h2>
+    <textarea id="codes" placeholder="Paste codes, one per line&#10;100000&#10;100003&#10;100005" spellcheck="false"></textarea>
+    <div class="row">
+      <button id="cf">Upload Excel / text file</button>
+      <input type="file" id="cfi" accept=".xlsx,.xls,.csv,.txt" hidden>
+      <span class="small" id="cInfo"></span>
+    </div>
+    <label>Warehouse filter (optional)</label>
+    <div class="chips" id="whChips"><span class="small">Load the master file to see warehouses</span></div>
+    <div class="row">
+      <button class="p" id="go" disabled>Search</button>
+      <button id="dl" disabled>Download Excel</button>
+      <button id="clr">Clear</button>
+    </div>
+    <div id="msg" class="msg"></div>
+  </section>
+</div>
+
+<div id="res"></div>
+</main>
+<footer>Project 3 &middot; Material Lookup &middot; Prepared by <b>Maruf Hasan</b></footer>
+
+<script>
+const $=id=>document.getElementById(id);
+let headers=[],rows=[],found=[],missing=[],selWh=new Set();
+const norm=v=>String(v==null?"":v).trim().toUpperCase().replace(/^0+(?=.)/,"");
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function say(t){$("msg").textContent=t||""}
+
+function readBook(file){return new Promise((ok,no)=>{
+  const r=new FileReader();
+  r.onerror=()=>no(new Error("Could not read file"));
+  r.onload=e=>{try{
+    const wb=XLSX.read(e.target.result,{type:"array",raw:true,cellDates:true});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    ok(XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:false}));
+  }catch(err){no(err)}};
+  r.readAsArrayBuffer(file);
+})}
+
+async function loadMaster(file){
+  try{
+    const data=(await readBook(file)).filter(r=>r.some(c=>String(c).trim()!==""));
+    if(data.length<2){say("Master file looks empty.");return}
+    headers=data[0].map((h,i)=>String(h).trim()||("Column "+(i+1)));
+    rows=data.slice(1).map(r=>headers.map((_,i)=>r[i]==null?"":String(r[i])));
+    const opts=headers.map((h,i)=>`<option value="${i}">${esc(h)}</option>`).join("");
+    $("keyCol").innerHTML=opts;$("keyCol").disabled=false;
+    $("whCol").innerHTML='<option value="-1">(none)</option>'+opts;$("whCol").disabled=false;
+    let k=headers.findIndex(h=>/^material$|material\s*(no|code|number)?$/i.test(h));$("keyCol").value=k<0?0:k;
+    let w=headers.findIndex(h=>/^wh$|warehouse|^wh\s*no/i.test(h));$("whCol").value=w;
+    $("drop").classList.add("done");
+    $("drop").textContent="✓ "+file.name;
+    $("mInfo").textContent=rows.length.toLocaleString()+" rows, "+headers.length+" columns loaded";
+    buildChips();say("");$("go").disabled=false;
+  }catch(err){say("Could not read master file: "+err.message)}
+}
+
+function buildChips(){
+  selWh.clear();
+  const w=+$("whCol").value,box=$("whChips");
+  if(w<0){box.innerHTML='<span class="small">No warehouse column selected</span>';return}
+  const vals=[...new Set(rows.map(r=>r[w].trim()).filter(Boolean))].sort();
+  if(vals.length>60){box.innerHTML='<span class="small">Too many distinct values — pick the right warehouse column</span>';return}
+  box.innerHTML=vals.map(v=>`<span class="chip" tabindex="0" data-v="${esc(v)}">${esc(v)}</span>`).join("");
+}
+$("whChips").addEventListener("click",e=>{
+  const c=e.target.closest(".chip");if(!c)return;
+  const v=c.dataset.v;selWh.has(v)?selWh.delete(v):selWh.add(v);c.classList.toggle("on");
+});
+$("whChips").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();e.target.click()}});
+$("whCol").onchange=buildChips;
+
+const drop=$("drop");
+drop.onclick=()=>$("mf").click();
+drop.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("mf").click()}};
+drop.ondragover=e=>{e.preventDefault();drop.classList.add("on")};
+drop.ondragleave=()=>drop.classList.remove("on");
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove("on");if(e.dataTransfer.files[0])loadMaster(e.dataTransfer.files[0])};
+$("mf").onchange=e=>{if(e.target.files[0])loadMaster(e.target.files[0])};
+
+$("cf").onclick=()=>$("cfi").click();
+$("cfi").onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;
+  try{
+    let list;
+    if(/\.txt$/i.test(f.name)) list=(await f.text()).split(/[\r\n,;\t]+/);
+    else{
+      const d=await readBook(f);
+      list=d.map(r=>r[0]);
+      if(d.length&&/material|code|item|sku|no/i.test(String(d[0][0]))&&isNaN(d[0][0]))list.shift();
+    }
+    list=list.map(x=>String(x).trim()).filter(Boolean);
+    $("codes").value=list.join("\n");
+    $("cInfo").textContent=f.name+" — "+list.length+" codes";
+    say("");
+  }catch(err){say("Could not read codes file: "+err.message)}
+  e.target.value="";
+};
+
+$("go").onclick=()=>{
+  if(!rows.length){say("Load the master file first.");return}
+  const codes=[...new Set($("codes").value.split(/[\r\n,;\t ]+/).map(s=>s.trim()).filter(Boolean))];
+  if(!codes.length){say("Enter at least one material code.");return}
+  say("");
+  const k=+$("keyCol").value,w=+$("whCol").value;
+  const idx=new Map();
+  rows.forEach(r=>{const n=norm(r[k]);if(!idx.has(n))idx.set(n,[]);idx.get(n).push(r)});
+  found=[];missing=[];let filteredOut=0;
+  codes.forEach(c=>{
+    let hit=idx.get(norm(c))||[];
+    if(hit.length&&selWh.size&&w>=0){
+      const f=hit.filter(r=>selWh.has(r[w].trim()));
+      if(!f.length)filteredOut++;
+      hit=f;
+    }
+    if(hit.length)hit.forEach(r=>found.push({code:c,row:r}));else missing.push(c);
+  });
+  render(codes.length,filteredOut);
+};
+
+function render(total,filteredOut){
+  const matched=new Set(found.map(f=>f.code)).size;
+  let h=`<div class="stats"><span class="stat">${matched} of ${total} codes found</span><span class="stat">${found.length} rows</span>`;
+  if(missing.length)h+=`<span class="stat w">${missing.length} not found${filteredOut?` (${filteredOut} not in selected warehouse)`:""}</span>`;
+  h+=`</div><h2 class="sec">Found (${found.length} rows)</h2><div class="wrap"><table><thead><tr><th>Search code</th>${headers.map(x=>`<th>${esc(x)}</th>`).join("")}</tr></thead><tbody>`;
+  const MAX=2000;
+  found.slice(0,MAX).forEach(f=>{h+=`<tr><td>${esc(f.code)}</td>${f.row.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`});
+  h+="</tbody></table></div>";
+  if(found.length>MAX)h+=`<p class="small">Showing first ${MAX} rows. Download Excel for all ${found.length}.</p>`;
+  if(missing.length)h+=`<h2 class="sec">Not found (${missing.length})</h2><div class="card nfbox"><div class="chips">${missing.map(m=>`<span class="chip">${esc(m)}</span>`).join("")}</div><div class="row"><button id="cpm">Copy list</button></div></div>`;
+  $("res").innerHTML=h;
+  const cp=$("cpm");
+  if(cp)cp.onclick=async()=>{try{await navigator.clipboard.writeText(missing.join("\n"));cp.textContent="Copied"}catch(e){cp.textContent="Copy not allowed here"}};
+  $("dl").disabled=!(found.length||missing.length);
+}
+
+const HEAD={font:{bold:true,color:{rgb:"FFFFFF"}},fill:{patternType:"solid",fgColor:{rgb:"1F3864"}},alignment:{horizontal:"center",vertical:"center"}};
+function sheetOf(aoa){
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  (aoa[0]||[]).forEach((_,c)=>{const ad=XLSX.utils.encode_cell({r:0,c});if(ws[ad])ws[ad].s=HEAD});
+  ws["!cols"]=(aoa[0]||[]).map((h,c)=>({wch:Math.min(40,Math.max(12,String(h).length+4,...aoa.slice(1,200).map(r=>String(r[c]==null?"":r[c]).length+2)))}));
+  return ws;
+}
+$("dl").onclick=()=>{
+  if(typeof XLSX==="undefined"){say("Excel library (xlsx.full.min.js) is not loaded.");return}
+  const wb=XLSX.utils.book_new();
+  wb.Props={Title:"Material Lookup",Author:"Maruf Hasan"};
+  XLSX.utils.book_append_sheet(wb,sheetOf([["Search code",...headers],...found.map(f=>[f.code,...f.row])]),"Found");
+  if(missing.length)XLSX.utils.book_append_sheet(wb,sheetOf([["Not found"],...missing.map(m=>[m])]),"Not found");
+  const d=new Date();
+  XLSX.writeFile(wb,"Material_Lookup_"+d.getDate()+"-"+(d.getMonth()+1)+"-"+d.getFullYear()+".xlsx");
+};
+
+$("clr").onclick=()=>{$("codes").value="";$("cInfo").textContent="";$("res").innerHTML="";found=[];missing=[];$("dl").disabled=true;say("")};
+</script>
+</body>
+</html>
