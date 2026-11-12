@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Project 4 - Shipment Manager</title>
+<script src="xlsx.full.min.js"></script>
+<script>if(typeof XLSX==='undefined'){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js';document.head.appendChild(s)}</script>
+<style>
+*{box-sizing:border-box}body{margin:0;font:14px Calibri,"Segoe UI",Arial,sans-serif;background:#f3f5f9;color:#1f2937}
+header{background:linear-gradient(135deg,#14233f,#1F3864);color:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.logo{display:inline-flex;width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,#3b82f6,#1d4ed8);align-items:center;justify-content:center;font-weight:800;font-size:19px;margin-right:10px;vertical-align:middle}
+header h1{display:inline;font-size:18px;vertical-align:middle}.bd{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.28);color:#bcd7ff;padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;text-decoration:none}
+header input{padding:6px 10px;border-radius:8px;border:0;width:130px}
+.app{display:flex;min-height:calc(100vh - 64px)}nav{width:190px;background:#fff;border-right:1px solid #e3e8f2;padding:10px;flex-shrink:0}
+nav button{display:block;width:100%;text-align:left;border:0;background:none;padding:10px 12px;border-radius:8px;font:inherit;font-weight:600;color:#44506a;cursor:pointer;margin-bottom:2px}
+nav button.on{background:#1F3864;color:#fff}main{flex:1;padding:16px;min-width:0}
+@media(max-width:780px){.app{display:block}nav{width:auto;display:flex;overflow-x:auto;border-right:0;border-bottom:1px solid #e3e8f2}nav button{white-space:nowrap;width:auto}}
+.card{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 6px rgba(0,0,0,.07)}.card h3{margin:0 0 10px;color:#1F3864}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}.kpi{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 6px rgba(0,0,0,.07)}.kpi b{display:block;font-size:26px;color:#1F3864}.kpi span{color:#667085;font-size:12px}
+button.b{background:#1F3864;color:#fff;border:0;border-radius:8px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}button.o{background:#fff;color:#1F3864;border:1.5px solid #1F3864;border-radius:8px;padding:6px 12px;font:inherit;font-weight:700;cursor:pointer}
+button.s{padding:3px 9px;font-size:12px;border-radius:6px;border:1px solid #b8c2d6;background:#fff;color:#1F3864;cursor:pointer}button.r{color:#c0392b;border-color:#e3b4ae}
+input,select,textarea{padding:8px;border:1px solid #b8c2d6;border-radius:8px;font:inherit;max-width:100%}textarea{width:100%;min-height:110px;font-family:Consolas,monospace}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.w{overflow:auto;border:1px solid #e3e8f2;border-radius:8px;max-height:520px}
+table{border-collapse:collapse;width:100%}th,td{padding:6px 10px;border-bottom:1px solid #eef1f6;text-align:left;white-space:nowrap}th{background:#eef2f9;color:#1F3864;position:sticky;top:0}
+.tag{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:#e4ecfa;color:#1F3864}.tag.u{background:#fdf0cf;color:#7a5200}.tag.x{background:#f6dcd9;color:#a33}
+.bar{display:flex;align-items:center;gap:8px;margin:4px 0}.bar i{display:block;height:14px;background:#3b82f6;border-radius:4px}.bar span{min-width:90px}
+.m{font-size:13px;color:#566074;margin:6px 0}.ok{color:#2e8b57}.er{color:#c0392b}.nt{background:#fff4e5;color:#7a5200;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:13px}
+@media print{header,nav,button,.row,.nt{display:none!important}main{padding:0}.w{max-height:none;border:0}}
+</style></head><body>
+<header><div><span class="logo">M</span><h1>Project 4 &ndash; Shipment Manager</h1></div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="who" placeholder="Your name" onchange="S.user=this.value;save()"><a class="bd" href="index.html">&#127968; Home</a><span class="bd">Prepared by Maruf Hasan</span></div></header>
+<div class="app"><nav id="nav"></nav><main id="main"></main></div>
+<script>
+const $=id=>document.getElementById(id),KEY='p4_state_v1';
+const DAYS=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'],CODE=/^[PD]\d{3,4}$/;
+const AMAP={'1ST JEDDAH':'1ST JEDDAH','TAIF KURMA':'KHURMA','BELJORESHY':'BALJURASHI','BALJURSHI':'BALJURASHI','TABUK':'TABOUK','QUNFUDAH':'QUNFUDHA'};
+let S=load(),tab='dash',adm=sessionStorage.getItem('p4adm')==='1',pend=null,pendSch=null,F={};
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.orders)return s}catch(e){}
+ return{orders:[],sched:{},drivers:{},phs:{},hist:[],active:null,reasons:['Cancelled','Stock shortage','Waiting transport'],audit:[],user:''}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){alert('Browser storage is full or blocked. Download a backup now.')}}
+function log(a,d){S.audit.unshift({t:new Date().toISOString(),u:S.user||'-',a,d});S.audit=S.audit.slice(0,400)}
+const esc=t=>String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cl=v=>String(v==null?'':v).trim(),nk=k=>cl(k).toLowerCase().replace(/[^a-z0-9]/g,''),ymd=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const nArea=v=>{v=cl(v).toUpperCase().replace(/\s+/g,' ');return AMAP[v]||v};
+const phCmp=(a,b)=>(parseInt(String(a).replace(/\D/g,''))||1e9)-(parseInt(String(b).replace(/\D/g,''))||1e9)||String(a).localeCompare(b);
+/* ---------- file reading ---------- */
+function readSheets(f){return new Promise((ok,no)=>{const r=new FileReader();r.onerror=()=>no(new Error('Cannot read the file'));r.onload=e=>{try{
+ if(typeof XLSX==='undefined')throw new Error('xlsx.full.min.js is not loaded');
+ const wb=XLSX.read(e.target.result,{type:'array'}),o={};wb.SheetNames.forEach(n=>o[n]=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:false}));ok(o)}catch(x){no(x)}};r.readAsArrayBuffer(f)})}
+/* ---------- importers ---------- */
+function parseOrders(a){const hi=a.findIndex(r=>r.map(nk).includes('delivery'));if(hi<0)throw new Error('Column "Delivery" not found');
+ const h=a[hi].map(nk),f=(...n)=>h.findIndex(x=>n.includes(x)),w=f('warehousenumber','whnumber','wh','warehouse'),d=f('delivery','deliverynumber'),p=f('shiptoparty','phnumber','ph','shipto');
+ if(w<0||p<0)throw new Error('Need columns: Warehouse Number, Delivery, Ship-to Party');
+ return a.slice(hi+1).filter(r=>r.some(c=>cl(c))).map((r,i)=>({wh:cl(r[w]).toUpperCase(),del:cl(r[d]),ph:cl(r[p]).toUpperCase(),line:hi+i+2}))}
+function checkRow(o){if(!/^[A-Z0-9]{2,4}$/.test(o.wh))return'WH looks wrong';if(!/^\d{6,12}$/.test(o.del))return'Delivery must be 6-12 digits';if(!CODE.test(o.ph))return'PH looks wrong';return''}
+function parseText(t){return t.split(/[\r\n]+/).map(s=>s.trim()).filter(Boolean).map((s,i)=>{const x=s.split(/[,\t;\s]+/);return{wh:(x[0]||'').toUpperCase(),del:x[1]||'',ph:(x[2]||'').toUpperCase(),line:i+1}})}
+function parseAll(a){const sc={},dr=a.map((r,i)=>r.some(c=>DAYS.includes(cl(c).toLowerCase()))?i:-1).filter(i=>i>=0);
+ dr.forEach((d,k)=>{const end=k+1<dr.length?dr[k+1]:a.length,day=[];let cur='';a[d].forEach((c,ci)=>{const v=cl(c).toLowerCase();if(DAYS.includes(v))cur=v;day[ci]=cur});
+  const ar=(a[d+1]||[]).map(nArea);
+  for(let r=d+2;r<end;r++)(a[r]||[]).forEach((c,ci)=>{const v=cl(c).toUpperCase();if(!v)return;
+   if(CODE.test(v)){if(!day[ci])return;const o=sc[v]||(sc[v]={days:[],area:''});if(!o.days.includes(day[ci]))o.days.push(day[ci]);o.area=ar[ci]||o.area}else ar[ci]=nArea(v)})});return sc}
+function parseJed(a){const hi=a.findIndex(r=>r.filter(c=>cl(c)&&!CODE.test(cl(c).toUpperCase())).length>=2);if(hi<0)return{};const dr={};
+ a.slice(hi+1).forEach(r=>r.forEach((c,ci)=>{const v=cl(c).toUpperCase();if(CODE.test(v)&&cl(a[hi][ci]))dr[v]=cl(a[hi][ci]).toUpperCase()}));return dr}
+/* ---------- derived data ---------- */
+function nextDate(days){const t=new Date();t.setHours(0,0,0,0);let best=null;(days||[]).forEach(d=>{const i=DAYS.indexOf(d);if(i<0)return;const x=new Date(t);x.setDate(t.getDate()+(i-t.getDay()+7)%7);if(!best||x<best)best=x});return best}
+function view(o){const s=S.sched[o.ph]||{},p=S.phs[o.ph]||{},days=p.day?[p.day]:s.days,n=nextDate(days);
+ return{...o,area:p.area||s.area||'',next:n?ymd(n):'',nextL:n?ymd(n)+' '+DAYS[n.getDay()].slice(0,3).toUpperCase():'',driver:S.drivers[o.ph]||'',inactive:p.active===false}}
+const rem=()=>S.orders.filter(o=>o.status==='R').map(view),shp=()=>S.orders.filter(o=>o.status==='S').map(view);
+/* ---------- helpers ---------- */
+function xl(name,head,rows){if(typeof XLSX==='undefined')return alert('xlsx.full.min.js is not loaded');
+ const ws=XLSX.utils.aoa_to_sheet([head,...rows]);head.forEach((_,c)=>{const a=XLSX.utils.encode_cell({r:0,c});if(ws[a])ws[a].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{patternType:'solid',fgColor:{rgb:'1F3864'}},alignment:{horizontal:'center'}}});
+ ws['!cols']=head.map(()=>({wch:20}));const wb=XLSX.utils.book_new();wb.Props={Author:'Maruf Hasan'};XLSX.utils.book_append_sheet(wb,ws,name.slice(0,30));XLSX.writeFile(wb,name+'_'+ymd(new Date())+'.xlsx')}
+function copy(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).catch(()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()})}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-copy]');if(b){copy(b.dataset.copy);const t=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=t,900)}});
+const tbl=(h,r)=>'<div class="w"><table><tr>'+h.map(x=>'<th>'+x+'</th>').join('')+'</tr>'+r.join('')+'</table></div>';
+const cb=d=>'<button class="s" data-copy="'+esc(d)+'">Copy</button>';
+const bars=o=>{const m=Math.max(1,...Object.values(o));return Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>'<div class="bar"><span>'+esc(k||'(none)')+'</span><i style="width:'+Math.round(v/m*60)+'%"></i><b>'+v+'</b></div>').join('')||'<div class="m">No data</div>'};
+const cnt=(a,f)=>a.reduce((o,x)=>{const k=f(x);o[k]=(o[k]||0)+1;return o},{});
+/* ---------- tabs ---------- */
+const TABS=[['dash','Dashboard'],['add','Add Orders'],['rem','Remaining'],['date','By Date'],['area','By Area'],['reason','By Reason'],['jed','Jeddah Drivers'],['ship','Shipped History'],['rep','Reports'],['admin','Admin']];
+function go(t){tab=t;render()}
+function render(){$('who').value=S.user||'';$('nav').innerHTML=TABS.map(([k,l])=>'<button class="'+(k===tab?'on':'')+'" onclick="go(\''+k+'\')">'+(k==='admin'?'&#128274; ':'')+l+'</button>').join('');
+ const m=$('main');m.innerHTML='<div class="nt">Data is saved in <b>this browser only</b>. Use Admin &rarr; Backup to keep a copy or move to another computer. (Shared Google Sheet sync is the next stage.)</div>';
+ const d=document.createElement('div');m.appendChild(d);({dash,add,rem:remV,date:d=>groupV2(d,o=>o.nextL||'Unmapped'),area:d=>groupV2(d,o=>o.area||'Unmapped'),reason:d=>groupV2(d,o=>o.reason||'No reason'),jed,ship,rep,admin:adminV}[tab])(d)}
+function dash(d){const r=rem(),s=shp(),t=ymd(new Date());
+ d.innerHTML='<div class="cards">'+[['Total deliveries',S.orders.length],['Remaining',r.length],['Shipped',s.length],["Today's shipments",r.filter(o=>o.next===t).length],['PH count',Object.keys(S.phs).length],['Unmapped',r.filter(o=>!o.next).length]].map(([a,b])=>'<div class="kpi"><b>'+b+'</b><span>'+a+'</span></div>').join('')+'</div>'+
+ '<div class="card"><h3>Next shipment dates</h3>'+bars(cnt(r,o=>o.nextL||'Unmapped'))+'</div><div class="card"><h3>Warehouse wise</h3>'+bars(cnt(r,o=>o.wh))+'</div><div class="card"><h3>Area wise</h3>'+bars(cnt(r,o=>o.area||'Unmapped'))+'</div>'+
+ '<div class="card"><h3>Recent uploads &amp; completions</h3>'+(S.audit.filter(a=>/upload|manual|complete/i.test(a.a)).slice(0,8).map(a=>'<div class="m">'+esc(a.t.slice(0,16).replace('T',' '))+' &middot; '+esc(a.u)+' &middot; <b>'+esc(a.a)+'</b> '+esc(a.d)+'</div>').join('')||'<div class="m">Nothing yet</div>')+'</div>'}
+/* ---------- add orders ---------- */
+function add(d){d.innerHTML='<div class="card"><h3>1. Upload SAP Excel (VL06C / order export)</h3><div class="row"><input type="file" id="of" accept=".xlsx,.xls,.csv"></div></div><div class="card"><h3>2. Or paste orders</h3><div class="m">One per line: WH, Delivery, PH &nbsp; e.g. K01, 111844147, P015</div><textarea id="tx" placeholder="K01, 111844147, P015"></textarea><div class="row"><button class="b" onclick="prev(parseText($(\'tx\').value),\'manual\')">Preview</button></div></div><div id="pv"></div>';
+ $('of').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const sh=await readSheets(f),n=Object.keys(sh).find(x=>/^data$/i.test(x))||Object.keys(sh)[0];prev(parseOrders(sh[n]),'upload:'+f.name)}catch(x){$('pv').innerHTML='<div class="card er">'+esc(x.message)+'</div>'}e.target.value=''}}
+function prev(list,src){const have=new Set(S.orders.map(o=>o.del)),seen=new Set(),ok=[],dup=[],bad=[];
+ list.forEach(o=>{const e=checkRow(o);if(e)bad.push({...o,e});else if(have.has(o.del)||seen.has(o.del))dup.push(o);else{seen.add(o.del);ok.push(o)}});pend={ok,src};
+ $('pv').innerHTML='<div class="card"><h3>Preview</h3><div class="cards"><div class="kpi"><b>'+list.length+'</b><span>Total rows</span></div><div class="kpi"><b class="ok">'+ok.length+'</b><span>New (will be added)</span></div><div class="kpi"><b>'+dup.length+'</b><span>Duplicates (ignored)</span></div><div class="kpi"><b class="er">'+bad.length+'</b><span>Invalid</span></div></div>'+
+ (bad.length?'<div class="m er">Invalid rows (first 15): '+bad.slice(0,15).map(b=>'line '+b.line+' ['+esc(b.wh+' '+b.del+' '+b.ph)+'] '+b.e).join(' &middot; ')+'</div>':'')+
+ (ok.length?tbl(['WH','Delivery','PH'],ok.slice(0,50).map(o=>'<tr><td>'+esc(o.wh)+'</td><td>'+esc(o.del)+'</td><td>'+esc(o.ph)+'</td></tr>'))+'<div class="row"><button class="b" onclick="commit()">Save '+ok.length+' orders</button></div>':'<div class="m">Nothing new to save.</div>')+'</div>'}
+function commit(){if(!pend)return;const have=new Set(S.orders.map(o=>o.del));let n=0;pend.ok.forEach(o=>{if(have.has(o.del))return;have.add(o.del);S.orders.push({id:'O'+Date.now()+'_'+n++,wh:o.wh,del:o.del,ph:o.ph,added:new Date().toISOString(),by:S.user||'-',status:'R',reason:''})});
+ log(pend.src.startsWith('upload')?'Upload':'Manual entry',n+' orders ('+pend.src+')');save();pend=null;$('pv').innerHTML='<div class="card ok"><b>&#10004; '+n+' orders saved.</b> Duplicates were ignored; the first record is always kept.</div>'}
+/* ---------- remaining ---------- */
+function remV(d){const r=rem(),u=k=>[...new Set(r.map(o=>o[k]).filter(Boolean))].sort(),sel=(id,k,l)=>'<select id="'+id+'" onchange="F.'+k+'=this.value;drawRem()"><option value="">'+l+'</option>'+u(k).map(x=>'<option'+(F[k]===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select>';
+ d.innerHTML='<div class="card"><h3>Remaining orders</h3><div class="row"><input id="q" placeholder="Search Delivery / PH" value="'+esc(F.q||'')+'" oninput="F.q=this.value;drawRem()">'+sel('fw','wh','All WH')+sel('fa','area','All areas')+sel('fd','next','All dates')+sel('fr','reason','All reasons')+'<button class="o" onclick="F={};render()">Clear</button></div><div id="tb"></div></div>';drawRem()}
+function drawRem(){const q=(F.q||'').toUpperCase(),r=rem().filter(o=>(!q||o.del.includes(q)||o.ph.includes(q))&&['wh','area','next','reason'].every(k=>!F[k]||o[k]===F[k]));
+ $('tb').innerHTML='<div class="m">'+r.length+' orders</div>'+tbl(['WH','Delivery','PH','Area','Ship date','Reason',''],r.slice(0,300).map(o=>'<tr><td>'+esc(o.wh)+'</td><td>'+esc(o.del)+' '+cb(o.del)+'</td><td>'+esc(o.ph)+(o.inactive?' <span class="tag x">inactive</span>':'')+'</td><td>'+(esc(o.area)||'<span class="tag u">Unmapped</span>')+'</td><td>'+(esc(o.nextL)||'<span class="tag u">Unmapped</span>')+'</td><td><select onchange="setReason(\''+o.id+'\',this.value)"><option value="">-</option>'+S.reasons.map(x=>'<option'+(o.reason===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></td><td><button class="s" onclick="done(\''+o.id+'\')">Shipment Complete</button></td></tr>'))}
+function setReason(id,v){const o=S.orders.find(x=>x.id===id);o.reason=v;log('Reason',o.del+' = '+v);save()}
+function done(id){const o=S.orders.find(x=>x.id===id);if(!confirm('Mark delivery '+o.del+' as Shipment Complete?'))return;o.status='S';o.doneAt=new Date().toISOString();o.doneBy=S.user||'-';log('Shipment complete',o.del);save();render()}
+/* ---------- grouped views ---------- */
+function groupV2(d,f){const r=rem(),g={};r.forEach(o=>(g[f(o)]=g[f(o)]||[]).push(o));
+ d.innerHTML=Object.keys(g).sort().map(k=>'<div class="card"><h3>'+esc(k)+' <span class="tag">'+g[k].length+'</span> <button class="s" data-copy="'+esc(g[k].map(o=>o.del).join('\n'))+'">Copy all deliveries</button></h3>'+tbl(['WH','Delivery','PH','Area','Driver'],g[k].sort((a,b)=>phCmp(a.ph,b.ph)).map(o=>'<tr><td>'+esc(o.wh)+'</td><td>'+esc(o.del)+' '+cb(o.del)+'</td><td>'+esc(o.ph)+'</td><td>'+esc(o.area)+'</td><td>'+esc(o.driver)+'</td></tr>'))+'</div>').join('')||'<div class="card m">No remaining orders.</div>'}
+/* ---------- jeddah drivers ---------- */
+function jed(d){const r=rem(),dr=[...new Set(Object.values(S.drivers))].sort();
+ d.innerHTML=dr.map(n=>{const phs=Object.keys(S.drivers).filter(p=>S.drivers[p]===n),o=r.filter(x=>S.drivers[x.ph]===n).sort((a,b)=>phCmp(a.ph,b.ph));
+  return'<div class="card"><h3>'+esc(n)+' <span class="tag">'+o.length+' deliveries</span> <span class="tag">'+phs.length+' PH</span> '+(o.length?'<button class="s" data-copy="'+esc(o.map(x=>x.del).join('\n'))+'">Copy all deliveries</button>':'')+'</h3>'+(o.length?tbl(['WH','PH','Delivery'],o.map(x=>'<tr><td>'+esc(x.wh)+'</td><td>'+esc(x.ph)+'</td><td>'+esc(x.del)+' '+cb(x.del)+'</td></tr>')):'<div class="m">No remaining deliveries.</div>')+'</div>'}).join('')||'<div class="card m">No drivers yet. Upload the schedule (JED sheet) in Admin &rarr; Schedule.</div>'}
+/* ---------- shipped ---------- */
+function ship(d){const s=shp().sort((a,b)=>b.doneAt.localeCompare(a.doneAt));d.innerHTML='<div class="card"><h3>Shipped history ('+s.length+')</h3>'+tbl(['WH','Delivery','PH','Area','Completed','By'],s.slice(0,500).map(o=>'<tr><td>'+esc(o.wh)+'</td><td>'+esc(o.del)+'</td><td>'+esc(o.ph)+'</td><td>'+esc(o.area)+'</td><td>'+esc(o.doneAt.slice(0,16).replace('T',' '))+'</td><td>'+esc(o.doneBy)+'</td></tr>'))+'</div>'}
+/* ---------- reports ---------- */
+function rep(d){const H=['WH','Delivery','PH','Area','Ship date','Driver','Status','Reason'],R=l=>l.map(o=>[o.wh,o.del,o.ph,o.area,o.next,o.driver,o.status==='S'?'Shipped':'Remaining',o.reason]),all=()=>S.orders.map(view),sr=(l,f)=>R(l.slice().sort(f));
+ const B=(l,fn)=>'<button class="b" onclick="'+fn+'">'+l+'</button> ';window.RP={all:()=>xl('All_Orders',H,R(all())),rem:()=>xl('Remaining',H,R(rem())),shp:()=>xl('Shipped_History',H,R(shp())),date:()=>xl('Date_Wise',H,sr(all(),(a,b)=>a.next.localeCompare(b.next)||phCmp(a.ph,b.ph))),area:()=>xl('Area_Wise',H,sr(all(),(a,b)=>a.area.localeCompare(b.area)||phCmp(a.ph,b.ph))),drv:()=>xl('Driver_Wise',H,sr(all().filter(o=>o.driver),(a,b)=>a.driver.localeCompare(b.driver)||phCmp(a.ph,b.ph))),ph:()=>xl('PH_Wise',H,sr(all(),(a,b)=>phCmp(a.ph,b.ph)))};
+ d.innerHTML='<div class="card"><h3>Excel reports</h3><div class="row">'+B('All orders','RP.all()')+B('Remaining','RP.rem()')+B('Shipped history','RP.shp()')+B('Date wise','RP.date()')+B('Area wise','RP.area()')+B('Driver wise','RP.drv()')+B('PH wise','RP.ph()')+'</div></div><div class="card"><h3>PDF</h3><div class="m">Open any tab (Remaining, By Date, By Area, Jeddah Drivers...), then press the button and choose "Save as PDF".</div><button class="o" onclick="window.print()">&#128424; Print / Save as PDF</button></div>'}
+/* ---------- admin ---------- */
+function adminV(d){if(!adm){d.innerHTML='<div class="card"><h3>&#128274; Admin</h3><div class="row"><input type="password" id="ap" placeholder="Admin password"><button class="b" onclick="if($(\'ap\').value===\'admin123\'){adm=true;sessionStorage.setItem(\'p4adm\',\'1\');render()}else alert(\'Wrong password\')">Login</button></div></div>';return}
+ const ph=Object.keys(S.phs).sort(phCmp),q=(F.pq||'').toUpperCase(),list=ph.filter(p=>!q||p.includes(q)||(S.phs[p].area||'').includes(q));
+ d.innerHTML='<div class="card"><h3>PH Management</h3><div class="row"><input id="np" placeholder="PH e.g. P700" size="9"><input id="na" placeholder="Area" size="14"><select id="nd"><option value="">Ship day (optional)</option>'+DAYS.map(x=>'<option>'+x+'</option>').join('')+'</select><button class="b" onclick="addPH()">Add / update PH</button></div><div class="m">A new PH without a day stays <b>Unmapped</b> until a schedule or day is assigned.</div><input placeholder="Search PH / area" value="'+esc(F.pq||'')+'" oninput="F.pq=this.value;render()"><div class="m">'+list.length+' PH</div>'+
+ tbl(['PH','Area','Day(s)','Status',''],list.slice(0,150).map(p=>{const x=S.phs[p],s=S.sched[p]||{};return'<tr><td>'+p+'</td><td><input value="'+esc(x.area||'')+'" size="14" onchange="setArea(\''+p+'\',this.value)"></td><td>'+esc(x.day||(s.days||[]).join(', ')||'-')+'</td><td><span class="tag '+(x.active===false?'x':'')+'">'+(x.active===false?'Inactive':'Active')+'</span></td><td><button class="s" onclick="togPH(\''+p+'\')">'+(x.active===false?'Activate':'Deactivate')+'</button></td></tr>'}))+'</div>'+
+ '<div class="card"><h3>Schedule Management</h3><div class="m">Active: <b>'+esc(S.active?(S.hist.find(h=>h.id===S.active)||{}).name:'none')+'</b></div><div class="row"><input type="file" id="sf" accept=".xlsx,.xls"></div><div id="sp"></div>'+tbl(['Version','Uploaded','PH',''],S.hist.map(h=>'<tr><td>'+esc(h.name)+(h.id===S.active?' <span class="tag">ACTIVE</span>':'')+'</td><td>'+esc(h.date.slice(0,16).replace('T',' '))+'</td><td>'+Object.keys(h.sched).length+'</td><td>'+(h.id===S.active?'':'<button class="s" onclick="restoreSch(\''+h.id+'\')">Restore</button>')+'</td></tr>'))+'</div>'+
+ '<div class="card"><h3>Reasons</h3><div class="row">'+S.reasons.map((x,i)=>'<span class="tag">'+esc(x)+' <a href="#" onclick="S.reasons.splice('+i+',1);save();render();return false">&times;</a></span>').join('')+'</div><div class="row"><input id="nr" placeholder="New reason"><button class="b" onclick="if($(\'nr\').value.trim()){S.reasons.push($(\'nr\').value.trim());log(\'Reason added\',$(\'nr\').value);save();render()}">Add</button></div></div>'+
+ '<div class="card"><h3>Backup / Restore</h3><div class="row"><button class="b" onclick="bk()">&#128229; Download backup</button><label class="o" style="padding:6px 12px;border-radius:8px;cursor:pointer">&#128228; Restore (replace all)<input type="file" id="rf" accept=".json" hidden></label><label class="o" style="padding:6px 12px;border-radius:8px;cursor:pointer">Merge orders from backup<input type="file" id="mf" accept=".json" hidden></label></div></div>'+
+ '<div class="card"><h3>Audit log</h3>'+tbl(['Time','User','Action','Details'],S.audit.slice(0,100).map(a=>'<tr><td>'+esc(a.t.slice(0,16).replace('T',' '))+'</td><td>'+esc(a.u)+'</td><td>'+esc(a.a)+'</td><td>'+esc(a.d)+'</td></tr>'))+'</div><div class="row"><button class="o" onclick="adm=false;sessionStorage.removeItem(\'p4adm\');render()">Log out</button></div>';
+ $('sf').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const sh=await readSheets(f),k=n=>Object.keys(sh).find(x=>x.trim().toUpperCase()===n);if(!k('ALL'))throw new Error('Sheet "ALL" not found');
+  const sc=parseAll(sh[k('ALL')]),dr=k('JED')?parseJed(sh[k('JED')]):{},dc={};Object.values(sc).forEach(x=>x.days.forEach(y=>dc[y]=(dc[y]||0)+1));pendSch={sc,dr,name:f.name};
+  $('sp').innerHTML='<div class="m"><b>'+Object.keys(sc).length+' PH</b> mapped &middot; '+Object.keys(dr).length+' Jeddah PH with '+new Set(Object.values(dr)).size+' drivers &middot; per day: '+Object.entries(dc).map(([a,b])=>a+' '+b).join(', ')+'</div><div class="row"><button class="b" onclick="setSch()">Set as ACTIVE schedule</button></div>'}catch(x){$('sp').innerHTML='<div class="m er">'+esc(x.message)+'</div>'}e.target.value=''};
+ const rd=(id,fn)=>$(id).onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{fn(JSON.parse(r.result))}catch(x){alert('Bad backup file')}};r.readAsText(f);e.target.value=''};
+ rd('rf',j=>{if(confirm('Replace ALL data in this browser with the backup?')){S=j;save();render()}});
+ rd('mf',j=>{const have=new Set(S.orders.map(o=>o.del));let n=0;(j.orders||[]).forEach(o=>{if(!have.has(o.del)){have.add(o.del);S.orders.push(o);n++}});log('Merge backup',n+' orders added');save();alert(n+' new orders merged');render()})}
+function addPH(){const p=cl($('np').value).toUpperCase(),a=nArea($('na').value);if(!CODE.test(p)||!a)return alert('Enter a valid PH (e.g. P700) and an area');const x=S.phs[p]||(S.phs[p]={active:true});x.area=a;x.manual=true;if($('nd').value)x.day=$('nd').value;log('PH saved',p+' '+a);save();render()}
+function setArea(p,v){S.phs[p].area=nArea(v);S.phs[p].manual=true;log('PH area',p+' = '+v);save()}
+function togPH(p){const x=S.phs[p];x.active=x.active===false;log(x.active?'PH activated':'PH deactivated',p);save();render()}
+function applySch(h){S.sched=h.sched;S.drivers=h.drivers;S.active=h.id;Object.entries(h.sched).forEach(([p,s])=>{const x=S.phs[p]||(S.phs[p]={active:true});if(!x.manual)x.area=s.area})}
+function setSch(){const h={id:'S'+Date.now(),name:pendSch.name,date:new Date().toISOString(),sched:pendSch.sc,drivers:pendSch.dr};if(!confirm('Set "'+h.name+'" as the ACTIVE schedule? Future shipment dates will be recalculated. Shipped history is not changed.'))return;S.hist.unshift(h);applySch(h);log('Schedule activated',h.name);save();pendSch=null;render()}
+function restoreSch(id){const h=S.hist.find(x=>x.id===id);if(h&&confirm('Restore "'+h.name+'" as the active schedule?')){applySch(h);log('Schedule restored',h.name);save();render()}}
+function bk(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'}));a.download='shipment_backup_'+ymd(new Date())+'.json';a.click()}
+render();
+</script></body></html>

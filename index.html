@@ -80,6 +80,12 @@
       <p>Upload a master file, paste material codes &rarr; get every matching row with all columns (like VLOOKUP). Warehouse filter and Not found list included.</p>
       <span class="go">Open Project 3 &rarr;</span>
     </a>
+    <a class="tile" href="project4.html">
+      <div class="ico">&#128666;</div>
+      <h2>Project 4 &ndash; Shipment Manager</h2>
+      <p>Upload SAP orders + schedule &rarr; shipment dates, areas, Jeddah drivers, remaining &amp; shipped history, reports. Admin section included.</p>
+      <span class="go">Open Project 4 &rarr;</span>
+    </a>
   </div>
 
   <div id="adminArea" hidden>
@@ -279,7 +285,7 @@ $('restore').addEventListener('change', e => {
   e.target.value = '';
 });
 
-$('ver').innerHTML = 'Page v7 &middot; Data script ' + (window.SHARED_VERSION ? window.SHARED_VERSION + ' \u2714' : '<b style="color:#c0392b">OLD - schedule.js was not updated</b>');
+$('ver').innerHTML = 'Page v8 &middot; Data script ' + (window.SHARED_VERSION ? window.SHARED_VERSION + ' \u2714' : '<b style="color:#c0392b">OLD - schedule.js was not updated</b>');
 refresh();
 try { if (sessionStorage.getItem('idxAdmin') === '1') adminShow(true); } catch (e) {}
 if (window.Shared) syncNow();
