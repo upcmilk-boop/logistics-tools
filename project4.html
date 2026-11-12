@@ -25,12 +25,19 @@ table{border-collapse:collapse;width:100%}th,td{padding:6px 10px;border-bottom:1
 .tag{padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;background:#e4ecfa;color:#1F3864}.tag.u{background:#fdf0cf;color:#7a5200}.tag.x{background:#f6dcd9;color:#a33}
 .bar{display:flex;align-items:center;gap:8px;margin:4px 0}.bar i{display:block;height:14px;background:#3b82f6;border-radius:4px}.bar span{min-width:90px}
 .m{font-size:13px;color:#566074;margin:6px 0}.ok{color:#2e8b57}.er{color:#c0392b}.nt{background:#fff4e5;color:#7a5200;padding:8px 12px;border-radius:8px;margin-bottom:12px;font-size:13px}
-.w td,.w th{user-select:none}.w td.dl{user-select:none;cursor:cell;font-family:Consolas,monospace;background:#fbfcff}.w td.dl.sel{background:#bcd7ff;outline:1px solid #3b82f6;outline-offset:-1px}.w th.dlh{cursor:pointer;user-select:none}
 .tip{font-size:13px;color:#566074;margin:6px 0 10px}
 .ms{position:relative;display:inline-block}.ms summary{list-style:none;cursor:pointer;padding:8px 12px;border:1px solid #b8c2d6;border-radius:8px;background:#fff;font-weight:600;color:#1F3864}.ms[open] summary{background:#e4ecfa}
 .mo{position:absolute;z-index:30;background:#fff;border:1px solid #b8c2d6;border-radius:8px;padding:8px;max-height:260px;overflow:auto;min-width:170px;box-shadow:0 4px 14px rgba(0,0,0,.18)}.mo label{display:block;padding:3px 4px;white-space:nowrap;cursor:pointer}
 button.ch{border:1.5px solid #1F3864;background:#fff;color:#1F3864;border-radius:99px;padding:6px 14px;font:inherit;font-weight:700;cursor:pointer;margin:2px}button.ch.on{background:#1F3864;color:#fff}
 td{user-select:text}td button,th{user-select:none}
+/* bigger controls */
+body{font-size:16px}nav{width:215px}nav button{font-size:16px;padding:13px 14px}header h1{font-size:20px}
+input,select,textarea{padding:11px 13px;font-size:16px}button.b{padding:12px 20px;font-size:16px}button.o{padding:10px 16px;font-size:16px}button.s{padding:7px 14px;font-size:14px}
+.ms summary{padding:11px 18px;font-size:16px}button.ch{padding:11px 22px;font-size:16px}.mo label{padding:7px 6px;font-size:16px}.mo{min-width:200px}
+th,td{padding:11px 14px;font-size:15.5px}.kpi b{font-size:30px}.tag{font-size:12.5px}.card h3{font-size:18px}
+td.ck,th.ck{width:56px;text-align:center;cursor:pointer;user-select:none}.bx{display:inline-block;width:28px;height:28px;border:2.5px solid #1F3864;border-radius:7px;background:#fff;vertical-align:middle;position:relative}
+tr.sel td{background:#e4ecfa}td.dl{font-weight:600;letter-spacing:.3px}tr.sel .bx{background:#1F3864}tr.sel .bx:after{content:'\2713';color:#fff;position:absolute;left:4px;top:-2px;font-size:20px;font-weight:700}
+.ab{position:sticky;top:0;z-index:15;background:#fff;border:1.5px solid #1F3864;border-radius:10px;padding:10px 14px;margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 @media print{header,nav,button,.row,.nt{display:none!important}main{padding:0}.w{max-height:none;border:0}}
 </style></head><body>
 <header><div><span class="logo">M</span><h1>Project 4 &ndash; Shipment Manager</h1></div>
@@ -83,28 +90,14 @@ function xl(name,head,rows){if(typeof XLSX==='undefined')return alert('xlsx.full
  ws['!cols']=head.map(()=>({wch:20}));const wb=XLSX.utils.book_new();wb.Props={Author:'Maruf Hasan'};XLSX.utils.book_append_sheet(wb,ws,name.slice(0,30));XLSX.writeFile(wb,name+'_'+ymd(new Date())+'.xlsx')}
 function copy(t){(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).catch(()=>{const a=document.createElement('textarea');a.value=t;document.body.appendChild(a);a.select();document.execCommand('copy');a.remove()})}
 /* Excel-style selection of Delivery cells: press on a cell, drag down, Ctrl+C */
-let dragA=null,dragT=null;
-const dlCells=t=>[...t.querySelectorAll('td.dl')];
-const selCells=()=>[...document.querySelectorAll('td.dl.sel')];
-const clearSel=()=>selCells().forEach(c=>c.classList.remove('sel'));
-function paint(t,i,j){const c=dlCells(t),lo=Math.min(i,j),hi=Math.max(i,j);c.forEach((x,k)=>x.classList.toggle('sel',k>=lo&&k<=hi))}
-function selNums(){const c=selCells();return c.length?c.map(x=>x.textContent.trim()):((window.getSelection()+'').match(/\d{6,12}/g)||[])}
-function copySel(){const t=selNums();if(!t.length)return alert('First press on a Delivery cell and drag down (or click the "Delivery" header to select the whole column).');copy(t.join('\n'));alert(t.length+' delivery numbers copied.')}
-document.addEventListener('mousedown',e=>{const c=e.target.closest('td.dl');if(!c){if(!e.target.closest('button,.tip'))clearSel();return}
- e.preventDefault();clearSel();dragT=c.closest('table');dragA=dlCells(dragT).indexOf(c);c.classList.add('sel')});
-document.addEventListener('mouseover',e=>{if(dragA===null)return;const c=e.target.closest('td.dl');if(c&&c.closest('table')===dragT)paint(dragT,dragA,dlCells(dragT).indexOf(c))});
-document.addEventListener('mouseup',()=>{dragA=null});
-document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'&&selCells().length){e.preventDefault();copy(selNums().join('\n'))}});
-document.addEventListener('copy',e=>{if(selCells().length){e.clipboardData.setData('text/plain',selNums().join('\n'));e.preventDefault()}});
-document.addEventListener('click',e=>{const h=e.target.closest('th.dlh');if(h){const t=h.closest('table'),c=dlCells(t);clearSel();c.forEach(x=>x.classList.add('sel'));return}
- const b=e.target.closest('[data-copy]');if(b){copy(b.dataset.copy);const t=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=t,900)}});
-const tbl=(h,r)=>'<div class="w"><table><tr>'+h.map(x=>x==='Delivery'?'<th class="dlh" title="Click to select the whole Delivery column">Delivery &#11015;</th>':'<th>'+x+'</th>').join('')+'</tr>'+r.join('')+'</table></div>';
+document.addEventListener('click',e=>{const b=e.target.closest('[data-copy]');if(b){copy(b.dataset.copy);const t=b.textContent;b.textContent='Copied';setTimeout(()=>b.textContent=t,900)}});
+const tbl=(h,r)=>'<div class="w"><table><tr>'+h.map(x=>'<th'+(x==='&#9745;'?' class="ck"':'')+'>'+x+'</th>').join('')+'</tr>'+r.join('')+'</table></div>';
 const cb=d=>'<button class="s" data-copy="'+esc(d)+'">Copy</button>';
 const bars=o=>{const m=Math.max(1,...Object.values(o));return Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([k,v])=>'<div class="bar"><span>'+esc(k||'(none)')+'</span><i style="width:'+Math.round(v/m*60)+'%"></i><b>'+v+'</b></div>').join('')||'<div class="m">No data</div>'};
 const cnt=(a,f)=>a.reduce((o,x)=>{const k=f(x);o[k]=(o[k]||0)+1;return o},{});
 /* ---------- tabs ---------- */
 const TABS=[['dash','Dashboard'],['dates','Shipment Dates'],['rem','Remaining'],['add','Add Orders'],['ship','Shipped History'],['rep','Reports'],['admin','Admin']];
-function go(t){tab=t;render()}
+function go(t){tab=t;SEL=new Set();render()}
 function render(){$('who').value=S.user||'';$('nav').innerHTML=TABS.map(([k,l])=>'<button class="'+(k===tab?'on':'')+'" onclick="go(\''+k+'\')">'+(k==='admin'?'&#128274; ':'')+l+'</button>').join('');
  const m=$('main');const lst=['rem','date','area','reason','jed'].includes(tab),un=S.orders.length&&rem().filter(o=>!o.next).length;
  m.innerHTML='<div class="nt">Data is saved in <b>this browser only</b>. Use Admin &rarr; Backup to keep a copy or move to another computer. Active schedule: <b>'+esc((S.hist.find(h=>h.id===S.active)||{}).name||'none')+'</b>'+(un?' &middot; <b>'+un+' order(s) Unmapped</b> (PH not in the schedule)':'')+'</div>'+(lst?'<div class="tip">&#128161; Excel-style copy: press on a <b>Delivery</b> cell and <b>drag down</b> (or click the <b>Delivery &#11015;</b> header to select the whole column), then press <b>Ctrl+C</b> or <button class="s" onclick="copySel()">Copy selected</button>. You get clean delivery numbers, one per line.</div>':'');
@@ -136,13 +129,26 @@ function listV(d,mode){LM=mode;const all=rem(),today=ymd(new Date()),opt=k=>[...
   top='<div class="m">Choose a shipment date:</div>'+(ds.map(k=>'<button class="ch'+(F.ds===k?' on':'')+'" onclick="F.ds=\''+k+'\';render()">'+(k.startsWith(today)?'Today &middot; ':'')+k.replace(/^\d{4}-/,'')+' ('+dc[k]+')</button>').join('')||'<div class="m">No remaining orders.</div>')+'<div class="m" style="margin-top:10px">Group inside the date by:</div>'+[['area','Area'],['driver','Driver'],['reason','Reason'],['','None']].map(([k,l])=>'<button class="ch'+((F.g===undefined?'area':F.g)===k?' on':'')+'" onclick="F.g=\''+k+'\';render()">'+l+'</button>').join('')}
  if(!Object.keys(S.sched).length)top='<div class="nt" style="margin:0 0 10px">No active schedule yet. Upload it in <b>Admin &rarr; Schedule Management</b>, otherwise dates, areas and drivers stay Unmapped.</div>'+top;
  d.innerHTML='<div class="card"><h3>'+(mode?'Shipment Dates':'Remaining orders')+'</h3>'+top+'<div class="row"><input id="q" placeholder="Search Delivery / PH" value="'+esc(F.q||'')+'" oninput="F.q=this.value;drawL()">'+ms('wh',opt('wh'))+ms('area',opt('area'))+ms('driver',opt('driver'))+ms('reason',opt('reason'))+(mode?'':ms('next',opt('next')))+'<button class="o" onclick="clrF()">Clear filters</button></div><div id="tb"></div></div>';drawL()}
-function rowH(o){return'<tr><td>'+esc(o.wh)+'</td><td>'+esc(o.del)+'</td><td>'+esc(o.ph)+(o.inactive?' <span class="tag x">inactive</span>':'')+'</td><td>'+(esc(o.area)||'<span class="tag u">Unmapped</span>')+'</td><td>'+esc(o.driver)+'</td>'+(LM?'':'<td>'+(esc(o.nextL)||'<span class="tag u">Unmapped</span>')+'</td>')+'<td><select onchange="setReason(\''+o.id+'\',this.value)"><option value="">-</option>'+S.reasons.map(x=>'<option'+(o.reason===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></td><td><button class="s" onclick="done(\''+o.id+'\')">Shipment Complete</button></td></tr>'}
+function rowH(o){return'<tr data-id="'+o.id+'"'+(SEL.has(o.id)?' class="sel"':'')+'><td class="ck"><span class="bx"></span></td><td>'+esc(o.wh)+'</td><td class="dl">'+esc(o.del)+'</td><td>'+esc(o.ph)+(o.inactive?' <span class="tag x">inactive</span>':'')+'</td><td>'+(esc(o.area)||'<span class="tag u">Unmapped</span>')+'</td><td>'+esc(o.driver)+'</td>'+(LM?'':'<td>'+(esc(o.nextL)||'<span class="tag u">Unmapped</span>')+'</td>')+'<td><select onchange="setReason(\''+o.id+'\',this.value)"><option value="">-</option>'+S.reasons.map(x=>'<option'+(o.reason===x?' selected':'')+'>'+esc(x)+'</option>').join('')+'</select></td></tr>'}
 function drawL(){const q=(F.q||'').toUpperCase(),ks=LM?['wh','area','driver','reason']:['wh','area','driver','reason','next'];
  const r=rem().filter(o=>(!LM||(o.nextL||'Unmapped')===F.ds)&&(!q||o.del.includes(q)||o.ph.includes(q))&&ks.every(k=>!(F[k]&&F[k].length)||F[k].includes(fv(o,k)))).sort((a,b)=>phCmp(a.ph,b.ph)||a.del.localeCompare(b.del));
- const H=['WH','Delivery','PH','Area','Driver'].concat(LM?[]:['Ship date']).concat(['Reason','']),g=LM?(F.g===undefined?'area':F.g):'';let h='';
- if(!g)h='<div class="row"><b>'+r.length+' orders</b>'+(r.length?'<button class="s" data-copy="'+esc(r.map(o=>o.del).join('\n'))+'">Copy all '+r.length+' deliveries</button>':'')+'</div>'+tbl(H,r.slice(0,1000).map(rowH));
- else{const G={};r.forEach(o=>(G[fv(o,g)]=G[fv(o,g)]||[]).push(o));h='<div class="m"><b>'+r.length+' orders</b></div>'+(Object.keys(G).sort().map(k=>'<h3 style="margin:14px 0 6px">'+esc(k)+' <span class="tag">'+G[k].length+'</span> <button class="s" data-copy="'+esc(G[k].map(o=>o.del).join('\n'))+'">Copy all '+G[k].length+' deliveries</button></h3>'+tbl(H,G[k].map(rowH))).join('')||'<div class="m">No orders for this selection.</div>')}
- $('tb').innerHTML=h+'<div class="m">Tip: drag down over the Delivery column and press Ctrl+C, just like Excel.</div>'}
+ const vis=new Set(r.map(o=>o.id));SEL=new Set([...SEL].filter(x=>vis.has(x)));const H=['&#9745;','WH','Delivery','PH','Area','Driver'].concat(LM?[]:['Ship date']).concat(['Reason']),g=LM?(F.g===undefined?'area':F.g):'';let h='<div class="ab" id="ab"></div>';
+ if(!g)h+='<div class="row"><b>'+r.length+' orders</b>'+(r.length?'<button class="s" data-copy="'+esc(r.map(o=>o.del).join('\n'))+'">Copy all '+r.length+' deliveries</button>':'')+'</div>'+tbl(H,r.slice(0,1000).map(rowH));
+ else{const G={};r.forEach(o=>(G[fv(o,g)]=G[fv(o,g)]||[]).push(o));h+='<div class="m"><b>'+r.length+' orders</b></div>'+(Object.keys(G).sort().map(k=>'<h3 style="margin:14px 0 6px">'+esc(k)+' <span class="tag">'+G[k].length+'</span> <button class="s" data-copy="'+esc(G[k].map(o=>o.del).join('\n'))+'">Copy all '+G[k].length+' deliveries</button> <button class="s" data-ids="'+G[k].map(o=>o.id).join(',')+'" onclick="tickG(this)">Tick all '+G[k].length+'</button></h3>'+tbl(H,G[k].map(rowH))).join('')||'<div class="m">No orders for this selection.</div>')}
+ $('tb').innerHTML=h+'<div class="m">Tip: tick rows (click, or press and drag down over the boxes), then use the buttons on top or press Ctrl+C to copy the delivery numbers.</div>';updAB()}
+let SEL=new Set(),drag=null;
+function selRow(tr,on){const id=tr.dataset.id;if(on){SEL.add(id);tr.classList.add('sel')}else{SEL.delete(id);tr.classList.remove('sel')}}
+function updAB(){const n=SEL.size,b=$('ab');if(!b)return;b.innerHTML=(n?'<b>'+n+' selected</b><button class="b" onclick="completeSel()">&#10004; Shipment Complete ('+n+')</button><button class="o" onclick="copySel()">Copy selected deliveries</button><button class="o" onclick="SEL=new Set();drawL()">Clear selection</button>':'<span class="m" style="margin:0">Nothing selected</span>')+'<button class="o" onclick="tickShown()">Tick all shown</button>'}
+function tickShown(){document.querySelectorAll('#tb tr[data-id]').forEach(tr=>selRow(tr,true));updAB()}
+function tickG(b){const ids=new Set(b.dataset.ids.split(','));document.querySelectorAll('#tb tr[data-id]').forEach(tr=>{if(ids.has(tr.dataset.id))selRow(tr,true)});updAB()}
+function selDels(){return[...document.querySelectorAll('#tb tr.sel td.dl')].map(x=>x.textContent.trim())}
+function copySel(){const l=selDels();if(!l.length)return;copy(l.join('\n'));const b=$('ab');if(b)b.insertAdjacentHTML('afterbegin','<b class="ok">Copied '+l.length+' &#10004;</b>')}
+function completeSel(){const ids=[...SEL];if(!ids.length||!confirm('Mark '+ids.length+' deliveries as Shipment Complete?'))return;const t=new Date().toISOString(),dl=[];
+ ids.forEach(id=>{const o=S.orders.find(x=>x.id===id);if(o&&o.status==='R'){o.status='S';o.doneAt=t;o.doneBy=S.user||'-';dl.push(o.del)}});log('Shipment complete',dl.length+' deliveries: '+dl.slice(0,6).join(', ')+(dl.length>6?' ...':''));save();SEL=new Set();render()}
+document.addEventListener('mousedown',e=>{const c=e.target.closest('#tb td.ck');if(!c)return;e.preventDefault();const tr=c.parentNode;drag=!SEL.has(tr.dataset.id);selRow(tr,drag);updAB()});
+document.addEventListener('mouseover',e=>{if(drag===null)return;const c=e.target.closest('#tb td.ck');if(c){selRow(c.parentNode,drag);updAB()}});
+document.addEventListener('mouseup',()=>{drag=null});
+document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='c'&&SEL.size&&!String(window.getSelection()).trim()&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)){e.preventDefault();copySel()}});
 function setReason(id,v){const o=S.orders.find(x=>x.id===id);o.reason=v;log('Reason',o.del+' = '+v);save()}
 function done(id){const o=S.orders.find(x=>x.id===id);if(!confirm('Mark delivery '+o.del+' as Shipment Complete?'))return;o.status='S';o.doneAt=new Date().toISOString();o.doneBy=S.user||'-';log('Shipment complete',o.del);save();render()}
 /* ---------- shipped ---------- */
