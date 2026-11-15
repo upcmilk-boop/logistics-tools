@@ -145,9 +145,10 @@ function syncSoon(){clearTimeout(stT);stT=setTimeout(sync,500)}
 function dirty(){S.sd=true;save();syncSoon()}
 function qAdd(items){S.q.push({t:'add',items});save();syncSoon()}
 function qUpd(items){S.q.push({t:'upd',items});save();syncSoon()}
-async function checkVer(){if(!SU())return alert('config.js has no Google URL yet.');
- try{const j=await(await fetch(SU())).json(),ok=j&&j.version==='p4-v1';sy(ok?'The Google script is the NEW version (p4-v1) \u2714 Now press Sync now.':'The Google script is still the OLD version (it shows no version number). Update it: Apps Script > Deploy > Manage deployments > pencil > Version: New version > Deploy.',ok)}
- catch(e){sy('Cannot reach the Google address in config.js. Check the address and your internet.',false)}}
+async function checkVer(){if(!SU())return alert('config.js has no Google address yet.');const u=SU();
+ try{const t=await(await fetch(u)).text();let j={};try{j=JSON.parse(t)}catch(e){}const ok=j.version==='p4-v1';
+  sy((ok?'The Google script is the NEW version (p4-v1) \u2714 Now press Sync now.':'The Google script at THIS address is the OLD version (no version number in its answer).')+' <br>Address used by this page: <b>...'+esc(u.slice(-26))+'</b><br>Its answer starts with: <code>'+esc(t.slice(0,80))+'</code>',ok)}
+ catch(e){sy('Cannot reach the Google address in config.js. Address used: ...'+esc(u.slice(-26))+'. Check it and your internet.',false)}}
 function uploadAll(){if(!SU()||!SK())return alert('Google Sheet is not ready: it needs the URL in config.js and the secret key saved on the Home page.');
  if(!confirm('Send all '+S.orders.length+' orders and the settings from this computer to the Google Sheet? Orders that are already in the sheet are kept as they are.'))return;
  const it=S.orders.map(o=>({del:o.del,wh:o.wh,ph:o.ph,by:o.by,at:o.added})),up=S.orders.filter(o=>o.status==='S'||o.reason).map(o=>({del:o.del,status:o.status,reason:o.reason||'',doneAt:o.doneAt||'',doneBy:o.doneBy||''}));
