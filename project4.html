@@ -119,7 +119,7 @@ function commit(){if(!pend)return;const have=new Set(S.orders.map(o=>o.del)),ite
  log(pend.src.startsWith('upload')?'Upload':'Manual entry',items.length+' orders ('+pend.src+')');if(items.length)qAdd(items);dirty();pend=null;
  $('pv').innerHTML='<div class="card ok"><b>&#10004; '+items.length+' orders saved.</b> Duplicates were ignored; the first record is always kept.'+(SU()&&SK()?' Sending to the Google Sheet...':'')+'</div>'}
 /* ---------- Google Sheet sync ---------- */
-const SU=()=>String(window.SHEET_URL||'').trim(),SK=()=>{try{return localStorage.getItem('logistics_sheet_key')||''}catch(e){return ''}};
+const SU=()=>String(window.P4_URL||window.SHEET_URL||'').trim(),SK=()=>{try{return localStorage.getItem('logistics_sheet_key')||''}catch(e){return ''}};
 let SY={m:'',ok:null,busy:false},stT;
 function syHtml(){if(!SU())return'Data is saved in <b>this browser only</b> (Google Sheet is not set up). Use Admin &rarr; Backup.';
  if(!SK())return'Google Sheet is set up, but the <b>secret key is not saved on this computer</b>. Open Home &rarr; Admin Login &rarr; Save key. Until then data stays in this browser only.';
