@@ -109,17 +109,17 @@ function dash(d){const r=rem(),s=shp(),t=ymd(new Date());
  '<div class="card"><h3>Next shipment dates</h3>'+bars(cnt(r,o=>o.nextL||'Unmapped'))+'</div><div class="card"><h3>Warehouse wise</h3>'+bars(cnt(r,o=>o.wh))+'</div><div class="card"><h3>Area wise</h3>'+bars(cnt(r,o=>o.area||'Unmapped'))+'</div>'+
  '<div class="card"><h3>Recent uploads &amp; completions</h3>'+(S.audit.filter(a=>/upload|manual|complete/i.test(a.a)).slice(0,8).map(a=>'<div class="m">'+esc(a.t.slice(0,16).replace('T',' '))+' &middot; '+esc(a.u)+' &middot; <b>'+esc(a.a)+'</b> '+esc(a.d)+'</div>').join('')||'<div class="m">Nothing yet</div>')+'</div>'}
 /* ---------- add orders ---------- */
-function add(d){d.innerHTML='<div class="card"><h3>1. Upload SAP Excel (VL06C / order export)</h3><div class="row"><input type="file" id="of" accept=".xlsx,.xls,.csv"></div></div><div class="card"><h3>2. Or paste orders</h3><div class="m">One per line: WH, Delivery, PH &nbsp; e.g. K01, 111844147, P015</div><textarea id="tx" placeholder="K01, 111844147, P015"></textarea><div class="row"><button class="b" onclick="prev(parseText($(\'tx\').value),\'manual\')">Preview</button></div></div><div id="pv"></div>';
+function add(d){d.innerHTML='<div class="card"><h3>1. Upload SAP Excel (VL06C / order export)</h3><div class="row"><input type="file" id="of" accept=".xlsx,.xls,.csv"></div></div><div class="card"><h3>2. Or paste orders</h3><div class="m">One per line: WH, Delivery, PH &nbsp; e.g. K01, 111844147, P015</div><textarea id="tx" placeholder="K01, 111844147, P015"></textarea><div class="row"><button class="b" onclick="prev(parseText($(\'tx\').value),\'manual\')">Preview</button></div></div><div id="pv">'+PVMSG+'</div>';
  $('of').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const sh=await readSheets(f),n=Object.keys(sh).find(x=>/^data$/i.test(x))||Object.keys(sh)[0];prev(parseOrders(sh[n]),'upload:'+f.name)}catch(x){$('pv').innerHTML='<div class="card er">'+esc(x.message)+'</div>'}e.target.value=''}}
-function prev(list,src){const have=new Set(S.orders.map(o=>o.del)),seen=new Set(),ok=[],dup=[],bad=[];
+function prev(list,src){PVMSG='';const have=new Set(S.orders.map(o=>o.del)),seen=new Set(),ok=[],dup=[],bad=[];
  list.forEach(o=>{const e=checkRow(o);if(e)bad.push({...o,e});else if(have.has(o.del)||seen.has(o.del))dup.push(o);else{seen.add(o.del);ok.push(o)}});pend={ok,src};
  $('pv').innerHTML='<div class="card"><h3>Preview</h3><div class="cards"><div class="kpi"><b>'+list.length+'</b><span>Total rows</span></div><div class="kpi"><b class="ok">'+ok.length+'</b><span>New (will be added)</span></div><div class="kpi"><b>'+dup.length+'</b><span>Duplicates (ignored)</span></div><div class="kpi"><b class="er">'+bad.length+'</b><span>Invalid</span></div></div>'+
  (bad.length?'<div class="m er">Invalid rows (first 15): '+bad.slice(0,15).map(b=>'line '+b.line+' ['+esc(b.wh+' '+b.del+' '+b.ph)+'] '+b.e).join(' &middot; ')+'</div>':'')+
  (ok.length?tbl(['WH','Delivery','PH'],ok.slice(0,50).map(o=>'<tr><td>'+esc(o.wh)+'</td><td>'+esc(o.del)+'</td><td>'+esc(o.ph)+'</td></tr>'))+'<div class="row"><button class="b" onclick="commit()">Save '+ok.length+' orders</button></div>':'<div class="m">Nothing new to save.</div>')+'</div>'}
 function commit(){if(!pend)return;const have=new Set(S.orders.map(o=>o.del)),items=[],t=new Date().toISOString();
  pend.ok.forEach(o=>{if(have.has(o.del))return;have.add(o.del);S.orders.push({id:'D'+o.del,wh:o.wh,del:o.del,ph:o.ph,added:t,by:S.user||'-',status:'R',reason:'',doneAt:'',doneBy:''});items.push({del:o.del,wh:o.wh,ph:o.ph,by:S.user||'-',at:t})});
- log(pend.src.startsWith('upload')?'Upload':'Manual entry',items.length+' orders ('+pend.src+')');if(items.length)qAdd(items);dirty();pend=null;
- $('pv').innerHTML='<div class="card ok"><b>&#10004; '+items.length+' orders saved.</b> Duplicates were ignored; the first record is always kept.'+(SU()&&SK()?' Sending to the Google Sheet...':'')+'</div>'}
+ log(pend.src.startsWith('upload')?'Upload':'Manual entry',items.length+' orders ('+pend.src+')');if(items.length)qAdd(items);dirty();const tk=t;pend=null;
+ PVMSG='<div class="card ok"><b>&#10004; '+items.length+' orders saved.</b> <button class="s r" onclick="delBatch(\''+tk+'\')">Wrong file? Undo this upload</button> Duplicates were ignored; the first record is always kept.'+(SU()&&SK()?' Sending to the Google Sheet...':'')+'</div>';$('pv').innerHTML=PVMSG}
 /* ---------- Google Sheet sync ---------- */
 const SU=()=>String(window.P4_URL||window.SHEET_URL||'').trim(),SK=()=>{try{return localStorage.getItem('logistics_sheet_key')||''}catch(e){return ''}};
 let SY={m:'',ok:null,busy:false},stT;
@@ -131,13 +131,13 @@ const post=a=>fetch(SU(),{method:'POST',body:JSON.stringify(Object.assign({key:S
 const packState=()=>JSON.stringify({sched:S.sched,drivers:S.drivers,phs:S.phs,hist:S.hist.slice(0,5),active:S.active,reasons:S.reasons,audit:S.audit.slice(0,150),areaDays:S.areaDays});
 const fail=j=>sy(j&&j.error==='Bad pharmacy code'?'The Google script is OLD. Paste the new Code.gs in Apps Script and deploy a New version.':'Google Sheet error: '+((j&&j.error)||'no answer')+(j&&j.error==='Wrong key'?' (check the secret key on the Home page)':''),false);
 async function flush(){if(!SU()||!SK())return false;
- try{while(S.q.length){const op=S.q[0],j=await post(op.t==='add'?{action:'p4_add',items:op.items}:{action:'p4_upd',updates:op.items});if(!j||!j.ok){fail(j);return false}S.q.shift();save()}
+ try{while(S.q.length){const op=S.q[0],j=await post(op.t==='add'?{action:'p4_add',items:op.items}:op.t==='del'?{action:'p4_del',items:op.items}:{action:'p4_upd',updates:op.items});if(!j||!j.ok){fail(j);return false}S.q.shift();save()}
   if(S.sd){const j=await post({action:'p4_state',state:packState()});if(!j||!j.ok){fail(j);return false}S.sd=false;save()}return true}
  catch(e){sy('No internet: your changes are saved here and will be sent automatically.',false);return false}}
 async function sync(){if(!SU()||!SK()||SY.busy)return;SY.busy=true;
  try{if(!await flush())return;const j=await post({action:'p4_get'});if(!j||!j.ok)return fail(j);
   if(!Array.isArray(j.orders)){sy('The Google script is OLD. Paste the new Code.gs in Apps Script and deploy a New version.',false);return}
-  if(S.q.length||S.sd)return;const before=JSON.stringify([S.orders,S.sched,S.phs,S.reasons,S.areaDays,S.active,S.hist.length]);
+  SY.ver=j.version||'';if(S.q.length||S.sd)return;const before=JSON.stringify([S.orders,S.sched,S.phs,S.reasons,S.areaDays,S.active,S.hist.length]);
   S.orders=j.orders.map(r=>({id:'D'+r.del,del:String(r.del),wh:String(r.wh||''),ph:String(r.ph||''),added:String(r.at||''),by:r.by||'',status:r.status==='S'?'S':'R',reason:r.reason||'',doneAt:String(r.doneAt||''),doneBy:r.doneBy||''}));
   if(j.state){const st=JSON.parse(j.state);['sched','drivers','phs','hist','active','reasons','audit','areaDays'].forEach(k=>{if(st[k]!==undefined)S[k]=st[k]});S.areaDays=S.areaDays||{}}
   save();sy('Google Sheet connected \u2714 '+new Date().toLocaleTimeString()+' - data is shared and safe.',true);
@@ -146,10 +146,11 @@ async function sync(){if(!SU()||!SK()||SY.busy)return;SY.busy=true;
 function syncSoon(){clearTimeout(stT);stT=setTimeout(sync,500)}
 function dirty(){S.sd=true;save();syncSoon()}
 function qAdd(items){S.q.push({t:'add',items});save();syncSoon()}
+function qDel(items){S.q.push({t:'del',items});save();syncSoon()}
 function qUpd(items){S.q.push({t:'upd',items});save();syncSoon()}
 async function checkVer(){if(!SU())return alert('config.js has no Google address yet.');const u=SU();
- try{const t=await(await fetch(u)).text();let j={};try{j=JSON.parse(t)}catch(e){}const ok=j.version==='p4-v1';
-  sy((ok?'The Google script is the NEW version (p4-v1) \u2714 Now press Sync now.':'The Google script at THIS address is the OLD version (no version number in its answer).')+' <br>Address used by this page: <b>...'+esc(u.slice(-26))+'</b><br>Its answer starts with: <code>'+esc(t.slice(0,80))+'</code>',ok)}
+ try{const t=await(await fetch(u)).text();let j={};try{j=JSON.parse(t)}catch(e){}const ok=!!j.version&&/^p4-v/.test(j.version),v2=j.version==='p4-v2';
+  sy((ok?(v2?'The Google script is the NEWEST version (p4-v2) \u2714 all features work.':'The Google script works (p4-v1) but cannot DELETE orders yet. Paste the newest Code.gs and deploy a New version to get delete.')+' Now press Sync now.':'The Google script at THIS address is the OLD version (no version number in its answer).')+' <br>Address used by this page: <b>...'+esc(u.slice(-26))+'</b><br>Its answer starts with: <code>'+esc(t.slice(0,80))+'</code>',ok)}
  catch(e){sy('Cannot reach the Google address in config.js. Address used: ...'+esc(u.slice(-26))+'. Check it and your internet.',false)}}
 function uploadAll(){if(!SU()||!SK())return alert('Google Sheet is not ready: it needs the URL in config.js and the secret key saved on the Home page.');
  if(!confirm('Send all '+S.orders.length+' orders and the settings from this computer to the Google Sheet? Orders that are already in the sheet are kept as they are.'))return;
@@ -179,10 +180,10 @@ function drawL(){const q=(F.q||'').toUpperCase(),ks=LM===1?['wh','area','driver'
  if(!g)h+='<div class="row"><b>'+r.length+' orders</b>'+(r.length?'<button class="s" data-copy="'+esc(r.map(o=>o.del).join('\n'))+'">Copy all '+r.length+' deliveries</button>':'')+'</div>'+tbl(H,r.slice(0,1000).map(rowH));
  else{const G={};r.forEach(o=>(G[fv(o,g)]=G[fv(o,g)]||[]).push(o));h+='<div class="m"><b>'+r.length+' orders</b></div>'+(Object.keys(G).sort().map(k=>'<h3 style="margin:14px 0 6px">'+esc(k)+' <span class="tag">'+G[k].length+'</span> <button class="s" data-copy="'+esc(G[k].map(o=>o.del).join('\n'))+'">Copy all '+G[k].length+' deliveries</button></h3>'+tbl(H,G[k].map(rowH))).join('')||'<div class="m">No orders for this selection.</div>')}
  $('tb').innerHTML=h+'<div class="m">Tip: click the tick box in the table header to select / unselect everything. Or tick rows one by one, or press and drag down over the boxes. Then Copy or Ctrl+C.</div>';updAB()}
-let SEL=new Set(),drag=null;
+let SEL=new Set(),drag=null,PVMSG='';
 function selRow(tr,on){const id=tr.dataset.id;if(on){SEL.add(id);tr.classList.add('sel')}else{SEL.delete(id);tr.classList.remove('sel')}}
 function updAB(){const n=SEL.size,b=$('ab');if(!b)return;const tot=document.querySelectorAll('#tb tr[data-id]').length,all=tot&&n===tot;
- b.innerHTML=(n?'<b>'+n+' selected</b>'+(LM===2?'<button class="b" onclick="backSel()">&#8617; Move back to Remaining ('+n+')</button>':'<button class="b" onclick="completeSel()">&#10004; Shipment Complete ('+n+')</button>')+'<button class="o" onclick="copySel()">Copy selected deliveries</button>':'<span class="m" style="margin:0">Nothing selected</span>')+'<button class="o" onclick="toggleAll()">'+(all?'&#9744; Unselect all':'&#9745; Select all')+'</button>';
+ b.innerHTML=(n?'<b>'+n+' selected</b>'+(LM===2?'<button class="b" onclick="backSel()">&#8617; Move back to Remaining ('+n+')</button>':'<button class="b" onclick="completeSel()">&#10004; Shipment Complete ('+n+')</button>')+'<button class="o" onclick="copySel()">Copy selected deliveries</button>'+(LM===2?'':'<button class="o" style="color:#c0392b;border-color:#c0392b" onclick="delSel()">&#128465; Delete selected</button>'):'<span class="m" style="margin:0">Nothing selected</span>')+'<button class="o" onclick="toggleAll()">'+(all?'&#9744; Unselect all':'&#9745; Select all')+'</button>';
  document.querySelectorAll('#tb table').forEach(t=>{const rs=[...t.querySelectorAll('tr[data-id]')];t.rows[0].classList.toggle('sel',rs.length>0&&rs.every(r=>r.classList.contains('sel')))})}
 function toggleAll(){const rs=[...document.querySelectorAll('#tb tr[data-id]')],on=rs.length>0&&rs.every(r=>r.classList.contains('sel'));rs.forEach(r=>selRow(r,!on));updAB()}
 function togT(th){const rs=[...th.closest('table').querySelectorAll('tr[data-id]')],on=rs.length>0&&rs.every(r=>r.classList.contains('sel'));rs.forEach(r=>selRow(r,!on));updAB()}
@@ -191,6 +192,17 @@ function copySel(){const l=selDels();if(!l.length)return;copy(l.join('\n'));cons
 function completeSel(){const ids=[...SEL];if(!ids.length||!confirm('Mark '+ids.length+' deliveries as Shipment Complete?'))return;const t=new Date().toISOString(),dl=[],up=[];
  ids.forEach(id=>{const o=S.orders.find(x=>x.id===id);if(o&&o.status==='R'){o.status='S';o.doneAt=t;o.doneBy=S.user||'-';dl.push(o.del);up.push({del:o.del,status:'S',doneAt:t,doneBy:o.doneBy})}});
  log('Shipment complete',dl.length+' deliveries: '+dl.slice(0,6).join(', ')+(dl.length>6?' ...':''));qUpd(up);dirty();SEL=new Set();render()}
+function delOrders(dels,label){if(!dels.length)return;
+ if(SU()&&SK()&&SY.ver!=='p4-v2')return alert('To delete orders, first update the Google script: paste the newest Code.gs in Apps Script and deploy a New version. (Then try again.)');
+ const set=new Set(dels),gone=S.orders.filter(o=>set.has(o.del)&&o.status==='R').map(o=>o.del);
+ if(!gone.length)return alert('Nothing to delete. Shipped orders are never deleted.');
+ S.orders=S.orders.filter(o=>!(set.has(o.del)&&o.status==='R'));log('Orders deleted',label+': '+gone.length+' ('+gone.slice(0,5).join(', ')+(gone.length>5?' ...':'')+')');qDel(gone);dirty();SEL=new Set();render()}
+function delSel(){const dl=[...SEL].map(id=>(S.orders.find(o=>o.id===id)||{}).del).filter(Boolean);if(!dl.length)return;
+ if(!confirm('DELETE '+dl.length+' selected orders?\nThey will be removed completely (they were not shipped). This cannot be undone.'))return;delOrders(dl,'selected')}
+function batches(){const g={};S.orders.forEach(o=>{const k=String(o.added||'');const b=g[k]||(g[k]={k,by:o.by,n:0,r:0,s:0});b.n++;if(o.status==='S')b.s++;else b.r++});return Object.values(g).sort((a,b)=>b.k.localeCompare(a.k))}
+function batchSrc(k){const t=Date.parse(k);if(!t)return'';const a=S.audit.find(x=>/^(Upload|Manual entry)/.test(x.a)&&Math.abs(Date.parse(x.t)-t)<8000);return a?a.d:''}
+function delBatch(k){const dl=S.orders.filter(o=>String(o.added||'')===k&&o.status==='R').map(o=>o.del);if(!dl.length)return alert('This upload has no remaining orders to delete.');
+ if(!confirm('Delete the '+dl.length+' REMAINING orders of this upload?\nOrders already shipped stay in Shipped History. This cannot be undone.'))return;delOrders(dl,'upload '+(k.slice(0,16).replace('T',' ')||'old'))}
 function backSel(){const ids=[...SEL];if(!ids.length||!confirm('Move '+ids.length+' deliveries back to Remaining?'))return;const dl=[],up=[];
  ids.forEach(id=>{const o=S.orders.find(x=>x.id===id);if(o&&o.status==='S'){o.status='R';o.doneAt='';o.doneBy='';dl.push(o.del);up.push({del:o.del,status:'R',doneAt:'',doneBy:''})}});
  log('Moved back to Remaining',dl.length+' deliveries: '+dl.slice(0,6).join(', ')+(dl.length>6?' ...':''));qUpd(up);dirty();SEL=new Set();render()}
@@ -222,7 +234,8 @@ function adminV(d){if(!adm){d.innerHTML='<div class="card"><h3>&#128274; Admin</
  rd('rf',j=>{if(confirm('Replace ALL data in this browser with the backup?')){S=j;S.q=[];S.areaDays=S.areaDays||{};save();render();uploadAll()}});
  rd('mf',j=>{const have=new Set(S.orders.map(o=>o.del));let n=0;const add=[];(j.orders||[]).forEach(o=>{if(!have.has(o.del)){have.add(o.del);o.id='D'+o.del;S.orders.push(o);add.push({del:o.del,wh:o.wh,ph:o.ph,by:o.by,at:o.added});n++}});log('Merge backup',n+' orders added');if(add.length)qAdd(add);dirty();alert(n+' new orders merged');render()});if($('ada'))fillAD()}
 function adminExtra(){const areas=[...new Set(Object.values(S.phs).map(x=>x.area).filter(Boolean))].sort();
- return'<div class="card"><h3>Import PH list (e.g. Riyadh)</h3><div class="m">Excel columns: <b>Plant</b> (PH), <b>Area_name</b>, <b>WH</b>. Every PH goes into the region below. Area_name is kept only as a note (Sub-area).</div><div class="row"><b>Region:</b><input id="rgn" value="RIYADH" size="12"><input type="file" id="pf" accept=".xlsx,.xls" onchange="importPH(this)"></div><div id="ipm" class="m"></div></div>'+
+ return'<div class="card"><h3>Uploaded batches (remove a wrong upload)</h3><div class="m">Each upload or paste is one batch. "Delete remaining" removes only orders that are <b>not shipped</b>; shipped history is never deleted.</div>'+tbl(['Uploaded','By','Source','Orders','Remaining','Shipped',''],batches().slice(0,15).map(b=>'<tr><td>'+esc(b.k.slice(0,16).replace('T',' ')||'(older)')+'</td><td>'+esc(b.by)+'</td><td>'+esc(batchSrc(b.k))+'</td><td>'+b.n+'</td><td>'+b.r+'</td><td>'+b.s+'</td><td>'+(b.r?'<button class="s r" onclick="delBatch(\''+esc(b.k)+'\')">Delete remaining ('+b.r+')</button>':'')+'</td></tr>'))+'</div>'+
+ '<div class="card"><h3>Import PH list (e.g. Riyadh)</h3><div class="m">Excel columns: <b>Plant</b> (PH), <b>Area_name</b>, <b>WH</b>. Every PH goes into the region below. Area_name is kept only as a note (Sub-area).</div><div class="row"><b>Region:</b><input id="rgn" value="RIYADH" size="12"><input type="file" id="pf" accept=".xlsx,.xls" onchange="importPH(this)"></div><div id="ipm" class="m"></div></div>'+
  '<div class="card"><h3>Area default shipment days</h3><div class="m">For areas whose pharmacies are not in the schedule file (for example RIYADH). A pharmacy that has its own day in the schedule keeps it.</div><div class="row"><select id="ada" onchange="fillAD()">'+areas.map(a=>'<option>'+esc(a)+'</option>').join('')+'</select>'+DAYS.map(d=>'<label><input type="checkbox" class="add" value="'+d+'"> '+d.slice(0,3)+'</label>').join(' ')+'<button class="b" onclick="saveAD()">Save days</button></div><div class="m">Now: '+(Object.entries(S.areaDays).filter(([k,v])=>v.length).map(([k,v])=>'<b>'+esc(k)+'</b> '+v.map(x=>x.slice(0,3)).join('/')).join(' &middot; ')||'none')+'</div></div>'+
  '<div class="card"><h3>&#9729; Google Sheet</h3><div class="m" id="sy2">'+syHtml()+'</div><div class="row"><button class="b" onclick="sync()">&#128260; Sync now</button><button class="o" onclick="uploadAll()">Upload everything from this computer</button><button class="o" onclick="checkVer()">Check Google script version</button></div><div class="m">Changes waiting to be sent: <b>'+S.q.length+'</b>'+(S.sd?' + settings':'')+'</div></div>'}
 function fillAD(){const a=$('ada').value,d=S.areaDays[a]||[];document.querySelectorAll('.add').forEach(c=>c.checked=d.includes(c.value))}
