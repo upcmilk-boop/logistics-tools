@@ -1,5 +1,5 @@
 /* Online list (Google Sheet) address.
    After you deploy the Apps Script, paste its Web App URL between the quotes.
    Leave it empty ('') to work without the Google Sheet. */
-window.SHEET_URL = 'https://script.google.com/macros/s/AKfycbzROPbpmlk9LnPtQC1-t1xxJCUWFZX79augnF6s4oKDo1Aqbs5C0pJFQ7T-oZPyAnCg/exec';
-window.P4_URL = 'https://script.google.com/macros/s/AKfycbxGMpib6OLSiDXRvGktlRInuC0njFJC5OYz4EYy0UVyRGoqb646R_ywDTleVOgITt-lqg/exec';
+window.SHEET_URL = 'https://script.google.com/macros/s/AKfycbwNi_FetSf_rOOSzmB_8FlQc8eFI6zPzfY8y4734MA8KfZzKNDvpIBc3Nn8VS6nB1kN/exec';
+window.P4_URL = 'https://script.google.com/macros/s/AKfycbwNi_FetSf_rOOSzmB_8FlQc8eFI6zPzfY8y4734MA8KfZzKNDvpIBc3Nn8VS6nB1kN/exec';
