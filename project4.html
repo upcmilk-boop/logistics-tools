@@ -192,8 +192,12 @@ function copySel(){const l=selDels();if(!l.length)return;copy(l.join('\n'));cons
 function completeSel(){const ids=[...SEL];if(!ids.length||!confirm('Mark '+ids.length+' deliveries as Shipment Complete?'))return;const t=new Date().toISOString(),dl=[],up=[];
  ids.forEach(id=>{const o=S.orders.find(x=>x.id===id);if(o&&o.status==='R'){o.status='S';o.doneAt=t;o.doneBy=S.user||'-';dl.push(o.del);up.push({del:o.del,status:'S',doneAt:t,doneBy:o.doneBy})}});
  log('Shipment complete',dl.length+' deliveries: '+dl.slice(0,6).join(', ')+(dl.length>6?' ...':''));qUpd(up);dirty();SEL=new Set();render()}
-function delOrders(dels,label){if(!dels.length)return;
- if(SU()&&SK()&&SY.ver!=='p4-v2')return alert('To delete orders, first update the Google script: paste the newest Code.gs in Apps Script and deploy a New version. (Then try again.)');
+async function liveVer(){try{const j=await(await fetch(SU())).json();return j.version||''}catch(e){return null}}
+async function delOrders(dels,label){if(!dels.length)return;
+ if(SU()&&SK()){const v=await liveVer();
+  if(v===null)return alert('Cannot reach the Google Sheet right now (check the internet) - nothing was deleted. Try again.');
+  if(v!=='p4-v2')return alert('Nothing was deleted.\nThe Google script at the address used by this page says: '+(v||'OLD (no version number)')+', but "p4-v2" is needed.\nAddress used: ...'+SU().slice(-26)+'\nOpen Admin > Google Sheet > "Check Google script version" and update the script (Deploy > Manage deployments > pencil > New version).');
+  SY.ver=v}
  const set=new Set(dels),gone=S.orders.filter(o=>set.has(o.del)&&o.status==='R').map(o=>o.del);
  if(!gone.length)return alert('Nothing to delete. Shipped orders are never deleted.');
  S.orders=S.orders.filter(o=>!(set.has(o.del)&&o.status==='R'));log('Orders deleted',label+': '+gone.length+' ('+gone.slice(0,5).join(', ')+(gone.length>5?' ...':'')+')');qDel(gone);dirty();SEL=new Set();render()}
